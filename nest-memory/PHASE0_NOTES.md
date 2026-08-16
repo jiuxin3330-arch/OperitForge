@@ -1,0 +1,57 @@
+# Nest Memory — Phase 0 + Raw Mirror 開工紀錄
+
+2026-08-17 凌晨|作者:CC 牧牧|對齊 IMPLEMENTATION.md §3
+
+## 已完成
+
+### Raw Mirror(shadow, append-only)— 上線 ✅
+- 形式:**唯讀輪詢 sidecar**,不改任何生產程式、不需重啟服務(比在 store.py 加 hook 安全)。
+- 來源:`/root/chatnest-next/data/version-bridge/conversations.db`(mode=ro)
+- 涵蓋五表:store_meta / conversations / session_aliases / messages / message_branches
+- 偵測 insert / **update / delete**(逐列 sha256 指紋,現階段幾百列全掃很便宜;首次回填 443 筆已完成,第二輪 0 變化驗證冪等)
+- 落地:`/srv/nest-memory/raw/raw-YYYYMMDD.jsonl`(append-only, fsync, 0600/0700, owner nestmemory)
+- 排程:cron 每 5 分鐘;flock 防重疊;state 在 `/srv/nest-memory/state/mirror_state.json`
+- **不掛 local_only 牌子**(規格書 §25:Phase 0 完成前 NOT SAFE)
+
+### Unix user 隔離 ✅
+- 建立 `chatagent`(uid 999)、`nestmemory`(uid 996)
+- `/srv/nest-memory` 全樹 0700 owner nestmemory
+- 已驗證:`sudo -u chatagent ls /srv/nest-memory` → Permission denied
+- ⚠️ 注意:chat agent 目前仍是 root,root 可繞過一切——真正的隔離要等降權完成
+
+### 備份 ✅
+- `/srv/nest-memory/bin/backup.sh`:raw/ + state/ + /root/nest-memory 文件 → tar.gz
+- 目的地(具體指定):`/srv/nest-memory/backup/`(本機,保留 14 份,每日 04:00)
+- 成功後寫 `health/backup_last_success.json`;首次備份 230KB 已驗證可解壓
+- **待決:異地目的地**。本機備份擋不了整台 VPS 掛掉。選項:(a) 糯糯手機/電腦定期拉取 (b) 雲端物件儲存(需開帳號) (c) CC 窗口定期拉到 GitHub private repo。需要糯糯選。
+
+### Health + 報警(硬規則 9)✅
+- `/srv/nest-memory/bin/health.py` 每 15 分鐘:disk_free(<3G warn/<1.5G crit)、backup 新鮮度(26h/50h)、mirror 新鮮度(0.5h/2h)
+- 報警出口:**借用 chatnest-next 既有推播**(notify.py → push_outbox/native_push_outbox → backend delivery loop → 糯糯手機)。已實測 delivered_external ✓
+- critical 即時推、同 alert 24h 不重發;warning 進 09:00 日摘要
+- 快照:`health/health_status.json`
+- 目前狀態:disk_free **warning(2.6GiB)**——磁碟本來就緊,不是新問題,但列入待處理
+
+## 執行身份註記(Phase 0 過渡)
+mirror/health/backup 目前以 root cron 執行(conversations.db 與 backend DB 都是 root 0600,nestmemory 讀不到)。輸出檔全部 owner nestmemory。降權完成後再把 mirror 遷到 nestmemory 身份(屆時用 group/ACL 開 conversations.db 唯讀)。
+
+## 未完成:chat agent shell 降權(需要糯糯拍板)
+
+現況:chat 老公的 shell = claude_agent_sdk 的 Bash 工具,跟著 chatnest-version-bridge.service 用 root 跑,cwd 在 /root 下。
+
+卡點:`/root` 是 0700。降權成 chatagent 後,chat 老公會失去:
+1. 讀寫 /root/chatnest-next 原始碼(他日常會自己改前端、vite build)
+2. /root/chatnest/full-stack/bsky.py、gmail.py 與 /root 下的憑證
+3. 其他 /root 下的工具目錄(voice-mcp 檔案等,MCP http 不受影響)
+
+方案(建議 A):
+- **A. 搬家**:把 chatnest-next 專案樹遷出 /root(如 /srv/chatnest,root:chatagent 群組可寫),bsky/gmail 憑證複製到 /home/chatagent 下 0600。SDK CLI 子行程用 wrapper 以 chatagent 執行。最乾淨,一次工程較大,需要停機窗口與逐項驗證。
+- B. ACL 開洞:維持 /root 路徑,用 setfacl 給 chatagent 逐目錄開權限。侵入小但洞會越開越多,邊界難審計。
+- C. 只鎖 memory,chat 老公保持 root(現狀)。不符 Phase 0,不建議,列出只為誠實。
+
+無論選哪個:動工前全量備份、備好回滾、逐項驗證 chat 老公的工具(bsky/gmail/voice/toy/vite build),挑糯糯在場的時段做。
+
+## 檔案清單
+- `/srv/nest-memory/bin/{mirror.py,notify.py,backup.sh,health.py}`
+- cron(root):mirror */5、health */15、backup 04:00
+- 本紀錄:`/root/nest-memory/PHASE0_NOTES.md`
