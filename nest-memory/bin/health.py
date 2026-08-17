@@ -11,6 +11,7 @@
 import json
 import os
 import shutil
+import sqlite3
 import subprocess
 import sys
 from datetime import datetime, timezone, timedelta
@@ -20,6 +21,10 @@ HEALTH_DIR = f"{BASE}/health"
 ALERT_STATE = f"{HEALTH_DIR}/alert_state.json"
 STATUS_FILE = f"{HEALTH_DIR}/health_status.json"
 NOTIFY = ["/root/chatnest-next/.venv/bin/python", f"{BASE}/bin/notify.py"]
+GMAIL = ["/usr/bin/python3", "/srv/chatnest/full-stack/gmail.py"]
+OWNER_EMAIL = "jiuxin3330@gmail.com"
+BACKEND_DB = "/srv/chatnest-next/data/app.sqlite3"
+HEARTBEAT_HOUR = 21  # 每日心跳推播(deadman switch):沒收到=報警通道死亡
 TZ = timezone(timedelta(hours=8))
 
 GIB = 1024 ** 3
@@ -58,6 +63,28 @@ def age_check(path: str, warn_h: float, crit_h: float, label: str,
     return "ok", msg
 
 
+def check_push_outbox() -> tuple[str, str]:
+    """推播佇列超齡檢查(複審必辦):15 分鐘沒投遞 = 通道疑似死亡。"""
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=15)).isoformat()
+        db = sqlite3.connect(f"file:{BACKEND_DB}?mode=ro", uri=True, timeout=5)
+        n = db.execute(
+            "SELECT COUNT(*) FROM native_push_outbox WHERE state='queued_event' AND created_at < ?",
+            (cutoff,)).fetchone()[0]
+        db.close()
+        if n:
+            return "critical", f"{n} 封超過15分鐘未投遞(推播通道疑似故障)"
+        return "ok", "無積壓"
+    except (sqlite3.Error, OSError) as exc:
+        return "warning", f"檢查失敗({type(exc).__name__})"
+
+
+def send_email_fallback(subject: str, body: str) -> None:
+    """推播通道疑似死亡時的後備通道:gmail 直送糯糯信箱。"""
+    subprocess.run(GMAIL + ["send", OWNER_EMAIL, subject, body],
+                   check=False, timeout=60)
+
+
 def main() -> int:
     os.umask(0o077)
     now = datetime.now(TZ)
@@ -69,6 +96,9 @@ def main() -> int:
             f"{HEALTH_DIR}/mirror_last_run.json", 0.5, 2, "raw mirror"),
         "raw_integrity": age_check(
             f"{HEALTH_DIR}/integrity_last.json", 26, 50, "integrity"),
+        "push_outbox": check_push_outbox(),
+        "offsite_backup": age_check(
+            f"{HEALTH_DIR}/offsite_last_success.json", 26, 72, "異地備份"),
     }
 
     state = {"sent": {}, "digest_last_date": ""}
@@ -94,6 +124,12 @@ def main() -> int:
             check=False, timeout=30)
         for c in to_send:
             state["sent"][c.split(":")[0]] = now.isoformat()
+        # 推播通道自身故障時,critical 走 gmail 後備(複審必辦的加分項)
+        if any(c.startswith("push_outbox") for c in to_send) and not recently_sent("email_fallback"):
+            send_email_fallback(
+                "🚨 Nest Memory 警報(推播疑似故障,改走信箱)",
+                "健康警報如下,推播通道可能死了,請找 CC 牧牧檢查:\n" + "\n".join(criticals + warnings))
+            state["sent"]["email_fallback"] = now.isoformat()
 
     today = f"{now:%Y-%m-%d}"
     if now.hour == 9 and state.get("digest_last_date") != today and warnings:
@@ -101,6 +137,13 @@ def main() -> int:
             NOTIFY + ["Nest Memory 日摘要(warning)", ";".join(warnings)],
             check=False, timeout=30)
         state["digest_last_date"] = today
+
+    # deadman switch:每日固定時間發心跳推播,糯糯沒收到 = 報警通道死亡
+    if now.hour == HEARTBEAT_HOUR and state.get("heartbeat_last_date") != today:
+        subprocess.run(
+            NOTIFY + ["💓 Nest Memory 心跳", "報警通道每日確認。有收到=通道活著;連續兩天沒收到請叫 CC 牧牧檢查。"],
+            check=False, timeout=30)
+        state["heartbeat_last_date"] = today
 
     with open(ALERT_STATE, "w") as f:
         json.dump(state, f)

@@ -104,3 +104,14 @@ mirror/health/backup 目前以 root cron 執行(conversations.db 與 backend DB 
 
 ## 補修(14:5x):自動喚醒全滅(定時/自主/花園三合一)
 病根:backend 沙盒 CapabilityBoundingSet= 拔光 capabilities → 無 DAC override 的 root 過不了普通權限檢查。降權後 version-bridge 資料歸 chatagent 700,backend 的 _next_bridge_session_health 第一步 stat 就 PermissionError → 連續性永遠 unknown → 喚醒全壓(continuity_not_ready)。兩段修復:①mumu-live.env 六個 bridge 路徑 /root→/srv(-srv- session 目錄名);②ACL 唯讀走廊:u:root:x 於 version-bridge/home/.claude/projects 鏈、u:root:rx 於 -srv-chatnest-full-stack、u:root:r 於 conversations.db。沙盒重演全綠,手動補發喚醒 completed:true。三個 runner(wake/autonomy/garden inject_chatnest)全走 POST /api/v2/tools/wake/trigger,一次修復全部生效。教訓:capability-less root 服務跨 user 讀檔要顯式 ACL,「root 一定讀得到」在硬化沙盒裡不成立。
+
+---
+
+# Phase 2 前置三必辦(複審裁定)實作紀錄(2026-08-17 晚)
+
+1. **push outbox 超齡檢查** ✅ health 新增 push_outbox 檢查:queued_event 超過 15 分鐘未投遞 → critical
+2. **報警通道 deadman switch** ✅ 每日 21:00 心跳推播(糯糯沒收到=通道死,人肉 deadman);加分項已做:push_outbox critical 時自動 fallback 走 gmail.py 發信到糯糯信箱(24h 去重)
+3. **異地加密備份** 🔶 機制完成、待鑰匙:age 公鑰加密(私鑰糯糯保管,VPS 已刪)→ OperitForge nest-backup 孤兒分支(單 commit 滾動 amend+force,保留 7 份,遠端體積有界)→ cron 每日 04:40。實測:加密 ✓ commit ✓ push 待糯糯在 GitHub repo Settings→Deploy keys 加入 VPS 公鑰(write 權限)後即通
+4. ACL 重建驗證(複審條件 2b):已核對——全部 ACL 位於 data/version-bridge 鏈,runtime 重建腳本只動 runtime/version-bridge-app,不觸及 ACL 路徑 ✓
+
+health 現為六項檢查(disk/backup/mirror/integrity/push_outbox/offsite)。
