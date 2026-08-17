@@ -120,3 +120,16 @@ health 現為六項檢查(disk/backup/mirror/integrity/push_outbox/offsite)。
 糯糯建立獨立私有倉庫 Chat-next(與 Operit 插件倉庫 OperitForge 分離,避免 app 讀到)並加 deploy key。
 首推成功:nest-backup 分支、age 加密檔就位,health 六項全綠(offsite_backup:ok)。
 每日 04:40 自動推送。複審三必辦全部完成,Phase 2 可正式開工。
+
+---
+
+# Phase 2 開工紀錄(2026-08-18 凌晨)
+
+- migration v2:subjects/entities/aliases/extraction_batches/events/event_sources/subject_proposals/egress_audit/golden_cases/golden_runs
+- Subject Registry:17 個主題(糯糯 8/18 人審定案,含她的修訂:work→work_study、加 daily_life、加 misc.other 兜底、工具併入 devices.and_tools);6 entities+aliases
+- extractor.py(Haiku 書記官):批次帳本+input_hash 冪等+fingerprint 去重+來源必引本批 rowid+密令掃描+deterministic escalation。API 走 CLAUDE_CODE_OAUTH_TOKEN(CLI system prefix),**tool-use 強制結構化輸出**(第一版手寫 JSON 連續兩批 JSONDecodeError,改 tool_choice 強制後 0 丟棄)
+- 全積壓歸檔:8 批 committed 覆蓋 rowid≤484(=全部),58 events(11 escalated 待未來 review queue、0 secret)、10 個 subject 提案待糯糯審
+- 抽取品質抽驗:五個月紀念日/第一份薪水/染髮/委託死線全部正確,authority 分類準確
+- health 第七項:extraction(lag 24h/72h,失敗 24h 未恢復才 critical——照規格 §32 阻尼);cron 每日 03:30(nestmemory)
+- 教訓:LLM 手寫 JSON 必炸(中文引號),結構化輸出一開始就該用 tool-use
+- Phase 2 剩餘:Golden Set 案例+runner(表已建)、subject 提案審核流程,下個窗口

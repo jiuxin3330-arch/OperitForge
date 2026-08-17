@@ -72,6 +72,114 @@ CREATE TABLE conv_map (
     created_at     TEXT NOT NULL
 );
 """),
+    (2, "event_extraction_layer", """
+CREATE TABLE subjects (
+    subject_id   TEXT PRIMARY KEY,
+    description  TEXT NOT NULL DEFAULT '',
+    volatility   TEXT NOT NULL CHECK(volatility IN ('stable','semi_stable','volatile','ephemeral')),
+    review_after_days INTEGER,
+    stale_after_days  INTEGER,
+    serving_behavior  TEXT NOT NULL DEFAULT 'normal',
+    status       TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','retired')),
+    approved_by  TEXT NOT NULL DEFAULT '',
+    created_at   TEXT NOT NULL
+);
+
+CREATE TABLE entities (
+    entity_id      TEXT PRIMARY KEY,
+    canonical_name TEXT NOT NULL,
+    type           TEXT NOT NULL,
+    created_at     TEXT NOT NULL
+);
+CREATE TABLE entity_aliases (
+    alias     TEXT PRIMARY KEY,
+    entity_id TEXT NOT NULL REFERENCES entities(entity_id)
+);
+
+CREATE TABLE extraction_batches (
+    batch_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_rowid INTEGER NOT NULL,
+    to_rowid   INTEGER NOT NULL,
+    input_hash TEXT NOT NULL,
+    model      TEXT NOT NULL,
+    prompt_version TEXT NOT NULL,
+    status     TEXT NOT NULL CHECK(status IN ('pending','committed','failed')),
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    error      TEXT,
+    events_count INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE events (
+    event_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    fingerprint  TEXT NOT NULL UNIQUE,
+    subject_id   TEXT NOT NULL,
+    event_type   TEXT NOT NULL,
+    value_before TEXT,
+    value_after  TEXT NOT NULL,
+    summary      TEXT NOT NULL DEFAULT '',
+    authority    TEXT NOT NULL,
+    impact       TEXT NOT NULL CHECK(impact IN ('low','medium','high')),
+    confidence   TEXT NOT NULL CHECK(confidence IN ('low','medium','high')),
+    occurred_at  TEXT NOT NULL,
+    batch_id     INTEGER NOT NULL REFERENCES extraction_batches(batch_id),
+    created_by_model  TEXT NOT NULL,
+    extractor_version TEXT NOT NULL,
+    escalated    INTEGER NOT NULL DEFAULT 0,
+    escalation_reason TEXT,
+    secret       INTEGER NOT NULL DEFAULT 0,
+    created_at   TEXT NOT NULL
+);
+CREATE INDEX idx_events_subject ON events(subject_id, occurred_at);
+CREATE INDEX idx_events_batch ON events(batch_id);
+
+CREATE TABLE event_sources (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id     INTEGER NOT NULL REFERENCES events(event_id),
+    source_rowid INTEGER NOT NULL,
+    quote        TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX idx_event_sources_event ON event_sources(event_id);
+
+CREATE TABLE subject_proposals (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    proposed_key TEXT NOT NULL,
+    reason       TEXT NOT NULL DEFAULT '',
+    example_quote TEXT NOT NULL DEFAULT '',
+    batch_id     INTEGER,
+    status       TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+    created_at   TEXT NOT NULL
+);
+
+CREATE TABLE egress_audit (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts         TEXT NOT NULL,
+    provider   TEXT NOT NULL,
+    model      TEXT NOT NULL,
+    purpose    TEXT NOT NULL,
+    from_rowid INTEGER,
+    to_rowid   INTEGER,
+    payload_hash TEXT NOT NULL,
+    notes      TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE golden_cases (
+    case_id  TEXT PRIMARY KEY,
+    title    TEXT NOT NULL,
+    fixture_json     TEXT NOT NULL,
+    expectation_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE golden_runs (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts      TEXT NOT NULL,
+    extractor_version TEXT NOT NULL,
+    model   TEXT NOT NULL,
+    passed  INTEGER NOT NULL,
+    failed  INTEGER NOT NULL,
+    details_json TEXT NOT NULL
+);
+"""),
 ]
 
 

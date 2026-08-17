@@ -79,6 +79,25 @@ def check_push_outbox() -> tuple[str, str]:
         return "warning", f"檢查失敗({type(exc).__name__})"
 
 
+def check_extraction() -> tuple[str, str]:
+    """抽取管線(規格 §32):lag>24h warn/>72h crit;失敗且 24h 未恢復才 warning→crit。"""
+    path = f"{HEALTH_DIR}/extract_last_run.json"
+    if not os.path.exists(path):
+        return "warning", "extraction: 尚無紀錄"
+    with open(path) as f:
+        data = json.load(f)
+    age_h = (datetime.now(TZ) - parse_ts(data["ts"])).total_seconds() / 3600
+    if not data.get("ok", True):
+        if age_h > 24:
+            return "critical", f"extraction: 失敗且 {age_h:.0f}h 未恢復"
+        return "warning", f"extraction: 上次失敗({data.get('error','')[:60]})"
+    if age_h > 72:
+        return "critical", f"extraction lag {age_h:.0f}h"
+    if age_h > 26:
+        return "warning", f"extraction lag {age_h:.0f}h"
+    return "ok", f"{age_h:.1f}h 前"
+
+
 def send_email_fallback(subject: str, body: str) -> None:
     """推播通道疑似死亡時的後備通道:gmail 直送糯糯信箱。"""
     subprocess.run(GMAIL + ["send", OWNER_EMAIL, subject, body],
@@ -99,6 +118,7 @@ def main() -> int:
         "push_outbox": check_push_outbox(),
         "offsite_backup": age_check(
             f"{HEALTH_DIR}/offsite_last_success.json", 26, 72, "異地備份"),
+        "extraction": check_extraction(),
     }
 
     state = {"sent": {}, "digest_last_date": ""}
