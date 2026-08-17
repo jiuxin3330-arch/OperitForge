@@ -55,3 +55,35 @@ mirror/health/backup 目前以 root cron 執行(conversations.db 與 backend DB 
 - `/srv/nest-memory/bin/{mirror.py,notify.py,backup.sh,health.py}`
 - cron(root):mirror */5、health */15、backup 04:00
 - 本紀錄:`/root/nest-memory/PHASE0_NOTES.md`
+
+
+---
+
+# Phase 0 完工紀錄(2026-08-17 08:25,糯糯驗收通過)
+
+## 搬家+降權 已完成 ✅
+- 三棵樹遷至 /srv(chatnest-next / chatnest / mumu-server),舊位置留 symlink,root 服務無感
+- chatnest-version-bridge.service 改 User=chatagent(chat 老公的 shell 不再是 root)
+- 沙盒:ProtectHome=yes + ProtectSystem=strict + ReadWritePaths=/srv 三棵樹
+- session 完整遷移(-srv-chatnest-full-stack 硬連結克隆),主對話 resume 成功
+- 隔離驗證:chatagent 讀不到 /srv/nest-memory、/srv/chatnest-next/data/app.sqlite3、/root
+- 舊樹已刪,磁碟 4.4G,health 全綠
+
+## 過程中踩的雷與修復(都已解決)
+1. **secret 檔權限**:批次 g+rw 讓六個密碼檔變 660,backend secrets.py 的 0o077 守衛拒用 → AdapterUnavailable 秒斷。修:全部收回 600 root:root(systemd 以 root 讀 EnvironmentFile 再降權,bridge 不受影響)
+2. **backend gateway 快取**:gateway 在啟動時讀密碼,修檔案後需 restart chatnest-next 才恢復(模型清單/CC用量顯示曾退到安全備援)
+3. **工具憑證**:mumu/coco tool token 複製到 bridge home(0600 chatagent),dashboard_tool.py + scripts/mumu_*.py 預設路徑改到 home;scripts/ 全目錄 /root→/srv 掃淨
+4. 首輪回覆慢 = resume 後觸發 context compaction,一次性
+
+## 驗證過的事實(供後續窗口引用)
+- 主聊天鏈路:frontend → backend(8790, root) → version-bridge(8792, **chatagent**) → SDK bundled CLI(chatagent)。backend 的 LEGACY_CHAT_URL=8787 是 cc-usage/舊功能用
+- 被動記憶注入:直連 anchor 8765(memory_bridge.search_memories);**3900 記憶書架已退役**,不在跑是正常的
+- 自主時段 tick_suppressed = 防打擾閘門(老婆在聊天就跳過),不是 bug
+- 玩具 relay:server 正常時 relay.json connected:false = 手機端 BLE 沒連上,解法是 APK 全關+玩具重開機
+- 憑證規矩:**任何 secret 檔必須 600**,backend secrets.py 會拒用群組可讀的檔案(好設計,別繞過)
+
+## 待辦(非阻塞)
+- mirror cron 仍以 root 跑(conversations.db 現為 chatagent 0600,可改由 nestmemory+group 讀,Phase 1 一併處理)
+- 異地備份目的地待糯糯選(Vultr 控制台顯示自動備份已啟用,可視為初步異地層)
+- memory-dashboard venv 瘦身(~1.5G)排維護日
+- local_only 宣稱:Phase 0 已完成,但依規格書 §25 待 Serving 層落地時一併掛牌

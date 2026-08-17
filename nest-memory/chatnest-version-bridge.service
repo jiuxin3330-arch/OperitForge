@@ -1,0 +1,32 @@
+[Unit]
+Description=ChatNest isolated version-session bridge (chatagent)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=chatagent
+Group=chatagent
+WorkingDirectory=/srv/chatnest/full-stack
+EnvironmentFile=/srv/chatnest-next/runtime/version-bridge.env
+ExecStart=/srv/chatnest/full-stack/.venv/bin/python -m uvicorn app.main:app --app-dir /srv/chatnest-next/runtime/version-bridge-app --host 127.0.0.1 --port 8792 --log-level warning
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillSignal=SIGINT
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+CapabilityBoundingSet=
+ReadWritePaths=/srv/chatnest-next /srv/chatnest /srv/mumu-server
+
+[Install]
+WantedBy=multi-user.target
