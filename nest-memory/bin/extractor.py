@@ -140,7 +140,7 @@ def parse_json(text: str) -> dict:
         raise
 
 
-def extract(db, messages, subjects, batch_id, escalations):
+def extract(db, messages, subjects, batch_id):
     """回傳 (valid_events, proposals, dropped)。純函數化方便 golden runner 重用。"""
     transcript = "\n".join(
         f"[{m['rowid']}] {m['ts']} {m['role']}: {m['text'][:600]}"
@@ -254,7 +254,7 @@ def main() -> int:
     db.commit()
 
     try:
-        events, proposals, dropped = extract(db, messages, subjects, batch_id, [])
+        events, proposals, dropped = extract(db, messages, subjects, batch_id)
         with db:
             n = 0
             for ev in events:
@@ -276,6 +276,9 @@ def main() -> int:
                             "INSERT INTO event_sources(event_id,source_rowid,quote) VALUES(?,?,?)",
                             (c.lastrowid, s["rowid"], str(s.get("quote") or "")[:300]))
             for p in proposals:
+                if db.execute("SELECT 1 FROM subject_proposals WHERE proposed_key=? AND status='pending'",
+                              (str(p.get("proposed_key"))[:100],)).fetchone():
+                    continue  # 提案去重:同 key 已有 pending 就不重複入列
                 db.execute(
                     """INSERT INTO subject_proposals(proposed_key,reason,example_quote,batch_id,created_at)
                        VALUES(?,?,?,?,?)""",

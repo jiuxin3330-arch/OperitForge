@@ -133,3 +133,9 @@ health 現為六項檢查(disk/backup/mirror/integrity/push_outbox/offsite)。
 - health 第七項:extraction(lag 24h/72h,失敗 24h 未恢復才 critical——照規格 §32 阻尼);cron 每日 03:30(nestmemory)
 - 教訓:LLM 手寫 JSON 必炸(中文引號),結構化輸出一開始就該用 tool-use
 - Phase 2 剩餘:Golden Set 案例+runner(表已建)、subject 提案審核流程,下個窗口
+
+## Phase 2 複審三項補交完成(8/18)
+- Golden Set 4/4 PASS(GS-7 閒聊 0 events/GS-8 可能≠決策/GS-14 重複 commit 冪等 first=1 rerun=0/GS-21 owner 糾正捕捉);golden_runner.py 用 :memory: 沙盒,絕不污染生產 events;結果入 golden_runs
+- PHASE2_NOTES.md 落地 VPS(教訓認領:紀錄是交付物)
+- 提案去重(10→9)+extractor 入列前查重+health 第八項 pending_proposals(有待審就進日摘要)
+- Phase 3 交接警告收錄:escalated=1 events 不得直接生成 active state
