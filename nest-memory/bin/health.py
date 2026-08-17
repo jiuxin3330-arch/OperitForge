@@ -98,6 +98,18 @@ def check_extraction() -> tuple[str, str]:
     return "ok", f"{age_h:.1f}h 前"
 
 
+def check_proposals() -> tuple[str, str]:
+    """subject 提案積壓:有 pending 就進日摘要提醒糯糯審(複審要求的審核節奏)。"""
+    try:
+        db = sqlite3.connect("file:/srv/nest-memory/db/memory.db?mode=ro", uri=True, timeout=5)
+        n = db.execute(
+            "SELECT COUNT(*) FROM subject_proposals WHERE status='pending'").fetchone()[0]
+        db.close()
+        return ("warning", f"{n} 筆主題提案待糯糯審") if n else ("ok", "無待審提案")
+    except (sqlite3.Error, OSError) as exc:
+        return "warning", f"檢查失敗({type(exc).__name__})"
+
+
 def send_email_fallback(subject: str, body: str) -> None:
     """推播通道疑似死亡時的後備通道:gmail 直送糯糯信箱。"""
     subprocess.run(GMAIL + ["send", OWNER_EMAIL, subject, body],
@@ -119,6 +131,9 @@ def main() -> int:
         "offsite_backup": age_check(
             f"{HEALTH_DIR}/offsite_last_success.json", 26, 72, "異地備份"),
         "extraction": check_extraction(),
+        "pending_proposals": check_proposals(),
+        "projection": age_check(
+            f"{HEALTH_DIR}/projection_last_run.json", 26, 74, "projection"),
     }
 
     state = {"sent": {}, "digest_last_date": ""}

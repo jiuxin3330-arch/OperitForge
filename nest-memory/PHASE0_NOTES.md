@@ -139,3 +139,13 @@ health 現為六項檢查(disk/backup/mirror/integrity/push_outbox/offsite)。
 - PHASE2_NOTES.md 落地 VPS(教訓認領:紀錄是交付物)
 - 提案去重(10→9)+extractor 入列前查重+health 第八項 pending_proposals(有待審就進日摘要)
 - Phase 3 交接警告收錄:escalated=1 events 不得直接生成 active state
+
+---
+
+# Phase 3 完工(State Projection,2026-08-18 凌晨)——本次先交報告 ✓
+- projection.py:確定性投影無 LLM,每次執行=全量重算(rebuild 演練即日常);state_projection 表照 §16
+- 複審鐵則落實:escalated 不得成 active(之後有衝突→disputed;只有 escalated→tentative)
+- 首投影 15 subjects:11 active/4 disputed/0 tentative;重算冪等驗證通過
+- freshness 依 volatility(§17);health 第九項 projection;cron 03:40
+- 裁量:correction overlay 不建獨立表(owner_correction 是 event,時序自然 supersede);單列現況表,歷史在 ledger
+- 詳細:/root/nest-memory/PHASE3_NOTES.md;Phase 4(Serving)=人格敏感區,需語感打樣+糯糯驗收
