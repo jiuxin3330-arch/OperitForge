@@ -87,3 +87,17 @@ mirror/health/backup 目前以 root cron 執行(conversations.db 與 backend DB 
 - 異地備份目的地待糯糯選(Vultr 控制台顯示自動備份已啟用,可視為初步異地層)
 - memory-dashboard venv 瘦身(~1.5G)排維護日
 - local_only 宣稱:Phase 0 已完成,但依規格書 §25 待 Serving 層落地時一併掛牌
+
+---
+
+# Phase 1 完工紀錄(2026-08-17 08:52)
+
+- memory.db 建立(/srv/nest-memory/db,nestmemory 0600,WAL),schema 走版本化 migration(migrate.py, v1: initial_raw_layer)
+- 表:raw_messages(訊息正典)+raw_message_revisions(append-only 證據)+raw_aux_rows/revisions(其餘四表)+conv_map(bridge conv → nest uid 不透明對應,不做跨庫 FK)+schema_migrations
+- mirror v2:SQLite 為 canon、JSONL 降為 export;雜湊狀態存 DB 不再用 state json;回填 467 筆、二輪冪等 0 ops
+- integrity.py:逐列雜湊核對,結果 missing/mismatched/stale/lag 全 0(458/458)——Phase 1 驗收「漏訊息率=0」達標
+- 執行身份:mirror+integrity 以 nestmemory 跑(conversations.db 靠 ACL 唯讀;traverse 用 u:nestmemory:x),Phase 0 的 root cron 過渡註記解除
+- cron:mirror */5(nestmemory)、integrity 04:20(nestmemory)、backup 04:00(root,已含 db/)、health */15(root,新增 raw_integrity 檢查)
+- health 四項全綠;chatagent 讀 memory.db → Permission denied 實測 ✓
+- 註記:raw_content_parts 未單獨建表(現行 text/thinking/attachments/traces 為單體欄位,拆分需求留待 Phase 2 抽取時評估,屬規格書「建議資料表」的範圍取捨)
+- 舊 v1 JSONL 存檔為 raw-20260817-v1shadow.jsonl(含 v1 時期回填,DB 未含此重複)

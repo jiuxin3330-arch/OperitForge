@@ -67,6 +67,8 @@ def main() -> int:
             f"{HEALTH_DIR}/backup_last_success.json", 26, 50, "backup"),
         "raw_mirror": age_check(
             f"{HEALTH_DIR}/mirror_last_run.json", 0.5, 2, "raw mirror"),
+        "raw_integrity": age_check(
+            f"{HEALTH_DIR}/integrity_last.json", 26, 50, "integrity"),
     }
 
     state = {"sent": {}, "digest_last_date": ""}

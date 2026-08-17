@@ -11,7 +11,7 @@ DEST=$BASE/backup
 STAMP=$(date +%Y%m%d-%H%M%S)
 OUT=$DEST/nest-memory-$STAMP.tar.gz
 
-tar -czf "$OUT" -C / srv/nest-memory/raw srv/nest-memory/state root/nest-memory
+tar -czf "$OUT" -C / srv/nest-memory/raw srv/nest-memory/state srv/nest-memory/db root/nest-memory
 chown nestmemory:nestmemory "$OUT"
 chmod 600 "$OUT"
 
