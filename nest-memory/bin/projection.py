@@ -92,20 +92,7 @@ def main() -> int:
     db = sqlite3.connect(DB, timeout=15)
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA journal_mode=WAL")
-    db.executescript("""
-        CREATE TABLE IF NOT EXISTS state_projection (
-            subject_id        TEXT PRIMARY KEY,
-            current_value     TEXT NOT NULL,
-            summary           TEXT NOT NULL DEFAULT '',
-            source_event_id   INTEGER NOT NULL,
-            authority         TEXT NOT NULL,
-            status            TEXT NOT NULL,
-            observed_at       TEXT NOT NULL,
-            last_confirmed_at TEXT NOT NULL,
-            freshness         TEXT NOT NULL,
-            computed_at       TEXT NOT NULL
-        );
-    """)
+    # state_projection schema 由 migrate.py v3 版本化管理(P3 複審補交①)
     try:
         projected, counts = project(db)
         with db:

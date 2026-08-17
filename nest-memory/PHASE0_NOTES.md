@@ -149,3 +149,12 @@ health 現為六項檢查(disk/backup/mirror/integrity/push_outbox/offsite)。
 - freshness 依 volatility(§17);health 第九項 projection;cron 03:40
 - 裁量:correction overlay 不建獨立表(owner_correction 是 event,時序自然 supersede);單列現況表,歷史在 ledger
 - 詳細:/root/nest-memory/PHASE3_NOTES.md;Phase 4(Serving)=人格敏感區,需語感打樣+糯糯驗收
+
+## Phase 3 複審補交+新發現修復(8/18)
+- 補交①:state_projection 表改由 migrate.py v3 版本化管理(硬規則:schema 變更走 migration);projection.py 移除自建表,VPS 已 applied 3:state_projection
+- 補交②:golden 補投影案例——GS-16(volatile subject 40 天未確認→freshness=stale_active)、GS-22(escalated 鐵則測試化:test.a 合格A+後續escalated B→disputed;test.b 只有 escalated→tentative)。純確定性,不呼叫 LLM
+- 新發現修復:extractor 衝突升級原本只查「同一天」,跨日的弱權威復述可能悄悄蓋掉 owner 糾正。改為比對當前 active state:非 owner_* 權威且 value 與 active state 不符 → escalated=1(conflicts_active_state)
+- 設計裁量:owner_* 權威豁免此檢查——owner 當下陳述優先(規格 §18),否則所有真實改變都會被卡死
+- 新 golden 案例 GS-23:preload active state(chatnest-next)後,assistant 復述舊值 mumu-chat 必須被升級——驗證整條鏈真的擋得住
+- Golden Set 全量重跑:**7 passed / 0 failed**(GS-16/22 投影 + GS-7/8/14/23/21 抽取);golden_cases 表 7 筆
+- 詳細:/root/nest-memory/PHASE3_NOTES.md 補交附錄;P4(Serving)開工前置條件已滿足

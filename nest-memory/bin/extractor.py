@@ -141,7 +141,7 @@ def parse_json(text: str) -> dict:
 
 
 def extract(db, messages, subjects, batch_id):
-    """回傳 (valid_events, proposals, dropped)。純函數化方便 golden runner 重用。"""
+    """回傳 (valid_events, proposals, dropped)。獨立函數方便 golden runner 重用。"""
     transcript = "\n".join(
         f"[{m['rowid']}] {m['ts']} {m['role']}: {m['text'][:600]}"
         for m in messages)
@@ -180,14 +180,30 @@ def extract(db, messages, subjects, batch_id):
                 continue
             esc, reasons = 0, []
             if confidence == "low" and impact == "high":
-                esc, _ = 1, reasons.append("low_confidence_high_impact")
+                esc = 1
+                reasons.append("low_confidence_high_impact")
             if str(ev.get("event_type")) in ESCALATE_TYPES:
-                esc, _ = 1, reasons.append("sensitive_type")
+                esc = 1
+                reasons.append("sensitive_type")
             conflict = db.execute(
                 "SELECT 1 FROM events WHERE subject_id=? AND value_after<>? AND date(occurred_at)=date(?) LIMIT 1",
                 (subject, value_after, occurred)).fetchone()
             if conflict:
-                esc, _ = 1, reasons.append("same_day_conflict")
+                esc = 1
+                reasons.append("same_day_conflict")
+            # 跨日衝突(P3 複審新發現):非 owner 權威的證據與當前 active state 不符
+            # → 升級,防止弱權威復述舊說法悄悄蓋掉 owner 糾正。
+            # owner_* 權威不觸發:owner 當下陳述優先(規格 §18),真改變不得卡死。
+            if not authority.startswith("owner_"):
+                try:
+                    cur_state = db.execute(
+                        "SELECT current_value FROM state_projection WHERE subject_id=? AND status='active'",
+                        (subject,)).fetchone()
+                    if cur_state and cur_state[0] != value_after:
+                        esc = 1
+                        reasons.append("conflicts_active_state")
+                except sqlite3.OperationalError:
+                    pass  # 表尚未建立(初期/沙盒)
             blob = value_after + str(ev.get("summary") or "") + "".join(s.get("quote", "") for s in sources)
             secret = 1 if SECRET_RE.search(blob) else 0
             events.append({

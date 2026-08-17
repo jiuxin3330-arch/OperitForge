@@ -13,6 +13,7 @@ from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, "/srv/nest-memory/bin")
 import extractor  # noqa: E402
+import projection  # noqa: E402
 
 DB = "/srv/nest-memory/db/memory.db"
 TZ = timezone(timedelta(hours=8))
@@ -41,6 +42,11 @@ CASES = [
         ("user", "決定了!聊天前端正式改用深色模式當預設"),
         ("assistant", "收到!我把預設主題切成深色模式了"),
     ), {"rerun_idempotent": True}),
+    ("GS-23", "弱權威復述與 active state 衝突須升級", msgs(
+        ("assistant", "對了,我們現在的聊天前端是 mumu-chat 對吧,我照這個來調整"),
+        ("user", "嗯嗯你先弄"),
+    ), {"escalated_if_subject": "chatnest.active_frontend",
+        "preload_state": ("chatnest.active_frontend", "chatnest-next", "owner_correction")}),
     ("GS-21", "Owner 糾正 stale frontend state", msgs(
         ("user", "欸現在的前端已經不是 mumu-chat 了 是 chatnest-next 喔 別再記舊的"),
         ("assistant", "對!已經搬到 chatnest-next 了,我更新認知"),
@@ -61,6 +67,15 @@ def sandbox_db():
             impact TEXT, confidence TEXT, occurred_at TEXT, batch_id INTEGER,
             created_by_model TEXT, extractor_version TEXT, escalated INTEGER,
             escalation_reason TEXT, secret INTEGER, created_at TEXT);
+        CREATE TABLE subjects (
+            subject_id TEXT PRIMARY KEY, description TEXT DEFAULT '',
+            volatility TEXT, review_after_days INTEGER, stale_after_days INTEGER,
+            serving_behavior TEXT DEFAULT 'normal', status TEXT DEFAULT 'active',
+            approved_by TEXT DEFAULT '', created_at TEXT DEFAULT '');
+        CREATE TABLE state_projection (
+            subject_id TEXT PRIMARY KEY, current_value TEXT, summary TEXT DEFAULT '',
+            source_event_id INTEGER, authority TEXT, status TEXT,
+            observed_at TEXT, last_confirmed_at TEXT, freshness TEXT, computed_at TEXT);
     """)
     return db
 
@@ -83,12 +98,17 @@ def insert_events(db, events):
 
 def run_case(case_id, title, fixture, expect, subjects):
     box = sandbox_db()
+    if "preload_state" in expect:
+        sid, val, auth = expect["preload_state"]
+        box.execute(
+            "INSERT INTO state_projection(subject_id,current_value,source_event_id,authority,status,observed_at,last_confirmed_at,freshness,computed_at) VALUES(?,?,0,?,'active',?,?,?,?)",
+            (sid, val, auth, TS, TS, "active_fresh", TS))
     events, proposals, dropped = extractor.extract(box, fixture, subjects, 0)
     detail = {"events": len(events), "proposals": len(proposals), "dropped": dropped}
     ok = True
     if "max_events" in expect and len(events) > expect["max_events"]:
         ok = False
-        detail["fail"] = f"expected ≤{expect['max_events']} events, got {len(events)}"
+        detail["fail"] = f"expected <={expect['max_events']} events, got {len(events)}"
     if "forbid_authority" in expect:
         bad = [e for e in events if e["authority"] in expect["forbid_authority"]]
         if bad:
@@ -103,9 +123,13 @@ def run_case(case_id, title, fixture, expect, subjects):
             if not hit:
                 ok = False
                 detail["fail"] = f"required event not found: {req}"
+    if "escalated_if_subject" in expect:
+        bad = [e for e in events
+               if e["subject_id"] == expect["escalated_if_subject"] and not e["escalated"]]
+        if bad:
+            ok = False
+            detail["fail"] = f"conflicting event not escalated: {bad[0]['value_after'][:60]}"
     if expect.get("rerun_idempotent"):
-        # 模擬 crash-retry:同一批事件重複 commit,第二次必須 0 寫入(fingerprint 層)
-        # (batch 層的 input_hash 去重已由生產 duplicate_batch 路徑驗證)
         first = insert_events(box, events)
         second = insert_events(box, events)
         detail["first_insert"], detail["rerun_insert"] = first, second
@@ -116,6 +140,42 @@ def run_case(case_id, title, fixture, expect, subjects):
     return ok, detail
 
 
+def run_projection_cases():
+    """確定性投影案例,不呼叫 LLM。"""
+    from datetime import timedelta as _td
+    results = {}
+
+    # GS-16: volatile subject 長期未確認 → stale_active
+    box = sandbox_db()
+    box.execute("INSERT INTO subjects(subject_id, volatility, review_after_days, stale_after_days) VALUES('test.volatile','volatile',14,30)")
+    old_ts = (datetime.now(TZ) - _td(days=40)).isoformat(timespec="seconds")
+    box.execute(
+        "INSERT INTO events(fingerprint,subject_id,event_type,value_after,summary,authority,impact,confidence,occurred_at,batch_id,created_by_model,extractor_version,escalated,secret,created_at) "
+        "VALUES('f1','test.volatile','state_change','A','','owner_decision','low','high',?,0,'golden','golden',0,0,?)",
+        (old_ts, old_ts))
+    projected, _ = projection.project(box)
+    row = next(r for r in projected if r[0] == "test.volatile")
+    ok16 = row[5] == "active" and row[8] == "stale_active"
+    results["GS-16"] = {"title": "volatile 長期未確認 → stale_active", "ok": ok16,
+                        "status": row[5], "freshness": row[8]}
+    box.close()
+
+    # GS-22: escalated 鐵則(有衝突→disputed;只有 escalated→tentative)
+    box = sandbox_db()
+    box.execute("INSERT INTO subjects(subject_id, volatility, review_after_days, stale_after_days) VALUES('test.a','volatile',14,30)")
+    box.execute("INSERT INTO subjects(subject_id, volatility, review_after_days, stale_after_days) VALUES('test.b','volatile',14,30)")
+    t1, t2 = "2026-08-17T10:00:00+08:00", "2026-08-17T11:00:00+08:00"
+    box.execute("INSERT INTO events(fingerprint,subject_id,event_type,value_after,summary,authority,impact,confidence,occurred_at,batch_id,created_by_model,extractor_version,escalated,secret,created_at) VALUES('f2','test.a','state_change','A','','owner_decision','low','high',?,0,'golden','golden',0,0,?)", (t1, t1))
+    box.execute("INSERT INTO events(fingerprint,subject_id,event_type,value_after,summary,authority,impact,confidence,occurred_at,batch_id,created_by_model,extractor_version,escalated,secret,created_at) VALUES('f3','test.a','state_change','B','','assistant_claim','low','low',?,0,'golden','golden',1,0,?)", (t2, t2))
+    box.execute("INSERT INTO events(fingerprint,subject_id,event_type,value_after,summary,authority,impact,confidence,occurred_at,batch_id,created_by_model,extractor_version,escalated,secret,created_at) VALUES('f4','test.b','state_change','C','','assistant_claim','low','low',?,0,'golden','golden',1,0,?)", (t1, t1))
+    projected, _ = projection.project(box)
+    st = {r[0]: r[5] for r in projected}
+    ok22 = st.get("test.a") == "disputed" and st.get("test.b") == "tentative"
+    results["GS-22"] = {"title": "escalated 鐵則(disputed/tentative)", "ok": ok22, "statuses": st}
+    box.close()
+    return results
+
+
 def main() -> int:
     prod = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
     prod.row_factory = sqlite3.Row
@@ -124,12 +184,17 @@ def main() -> int:
     prod.close()
 
     results, passed, failed = {}, 0, 0
+    for cid, r in run_projection_cases().items():
+        results[cid] = r
+        passed += r["ok"]
+        failed += (not r["ok"])
+        print(f"{'PASS' if r['ok'] else 'FAIL'} {cid} {r['title']}: {json.dumps({k: v for k, v in r.items() if k not in ('title',)}, ensure_ascii=False)}")
     for case_id, title, fixture, expect in CASES:
         ok, detail = run_case(case_id, title, fixture, expect, subjects)
         results[case_id] = {"title": title, "ok": ok, **detail}
         passed += ok
         failed += (not ok)
-        print(f"{'✓' if ok else '✗'} {case_id} {title}: {json.dumps(detail, ensure_ascii=False)}")
+        print(f"{'PASS' if ok else 'FAIL'} {case_id} {title}: {json.dumps(detail, ensure_ascii=False)}")
 
     wdb = sqlite3.connect(DB, timeout=15)
     with wdb:

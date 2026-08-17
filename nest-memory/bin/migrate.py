@@ -180,6 +180,20 @@ CREATE TABLE golden_runs (
     details_json TEXT NOT NULL
 );
 """),
+    (3, "state_projection", """
+CREATE TABLE IF NOT EXISTS state_projection (
+    subject_id        TEXT PRIMARY KEY,
+    current_value     TEXT NOT NULL,
+    summary           TEXT NOT NULL DEFAULT '',
+    source_event_id   INTEGER NOT NULL,
+    authority         TEXT NOT NULL,
+    status            TEXT NOT NULL,
+    observed_at       TEXT NOT NULL,
+    last_confirmed_at TEXT NOT NULL,
+    freshness         TEXT NOT NULL,
+    computed_at       TEXT NOT NULL
+);
+"""),
 ]
 
 
