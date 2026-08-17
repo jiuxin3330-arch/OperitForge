@@ -115,3 +115,8 @@ mirror/health/backup 目前以 root cron 執行(conversations.db 與 backend DB 
 4. ACL 重建驗證(複審條件 2b):已核對——全部 ACL 位於 data/version-bridge 鏈,runtime 重建腳本只動 runtime/version-bridge-app,不觸及 ACL 路徑 ✓
 
 health 現為六項檢查(disk/backup/mirror/integrity/push_outbox/offsite)。
+
+## 異地備份完工(8/18 01:40)
+糯糯建立獨立私有倉庫 Chat-next(與 Operit 插件倉庫 OperitForge 分離,避免 app 讀到)並加 deploy key。
+首推成功:nest-backup 分支、age 加密檔就位,health 六項全綠(offsite_backup:ok)。
+每日 04:40 自動推送。複審三必辦全部完成,Phase 2 可正式開工。
