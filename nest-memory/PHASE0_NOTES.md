@@ -101,3 +101,6 @@ mirror/health/backup 目前以 root cron 執行(conversations.db 與 backend DB 
 - health 四項全綠;chatagent 讀 memory.db → Permission denied 實測 ✓
 - 註記:raw_content_parts 未單獨建表(現行 text/thinking/attachments/traces 為單體欄位,拆分需求留待 Phase 2 抽取時評估,屬規格書「建議資料表」的範圍取捨)
 - 舊 v1 JSONL 存檔為 raw-20260817-v1shadow.jsonl(含 v1 時期回填,DB 未含此重複)
+
+## 補修(14:5x):自動喚醒全滅(定時/自主/花園三合一)
+病根:backend 沙盒 CapabilityBoundingSet= 拔光 capabilities → 無 DAC override 的 root 過不了普通權限檢查。降權後 version-bridge 資料歸 chatagent 700,backend 的 _next_bridge_session_health 第一步 stat 就 PermissionError → 連續性永遠 unknown → 喚醒全壓(continuity_not_ready)。兩段修復:①mumu-live.env 六個 bridge 路徑 /root→/srv(-srv- session 目錄名);②ACL 唯讀走廊:u:root:x 於 version-bridge/home/.claude/projects 鏈、u:root:rx 於 -srv-chatnest-full-stack、u:root:r 於 conversations.db。沙盒重演全綠,手動補發喚醒 completed:true。三個 runner(wake/autonomy/garden inject_chatnest)全走 POST /api/v2/tools/wake/trigger,一次修復全部生效。教訓:capability-less root 服務跨 user 讀檔要顯式 ACL,「root 一定讀得到」在硬化沙盒裡不成立。
