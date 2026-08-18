@@ -110,6 +110,23 @@ def check_proposals() -> tuple[str, str]:
         return "warning", f"檢查失敗({type(exc).__name__})"
 
 
+def check_serving() -> tuple[str, str]:
+    """Phase 4:renderer 新鮮度 + MCP 服務存活(egress 出口在服務內強制)。"""
+    lvl, msg = age_check(
+        f"{HEALTH_DIR}/serving_render_last.json", 26, 74, "serving render")
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", 8771), timeout=3):
+            pass
+    except OSError:
+        svc = ("warning", "MCP 8771 不通")
+        order = {"ok": 0, "warning": 1, "critical": 2}
+        if order[svc[0]] > order[lvl]:
+            lvl = svc[0]
+        msg += ";MCP 8771 不通"
+    return lvl, msg
+
+
 def send_email_fallback(subject: str, body: str) -> None:
     """推播通道疑似死亡時的後備通道:gmail 直送糯糯信箱。"""
     subprocess.run(GMAIL + ["send", OWNER_EMAIL, subject, body],
@@ -134,6 +151,7 @@ def main() -> int:
         "pending_proposals": check_proposals(),
         "projection": age_check(
             f"{HEALTH_DIR}/projection_last_run.json", 26, 74, "projection"),
+        "serving": check_serving(),
     }
 
     state = {"sent": {}, "digest_last_date": ""}

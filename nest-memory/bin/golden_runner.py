@@ -176,6 +176,45 @@ def run_projection_cases():
     return results
 
 
+def run_serving_cases():
+    """Serving 渲染案例(Phase 4,無 LLM)。"""
+    import serving_common as sc_mod
+    results = {}
+    ins_sub = "INSERT INTO subjects(subject_id, volatility, review_after_days, stale_after_days) VALUES(?, 'volatile', 14, 30)"
+    ins_st = ("INSERT INTO state_projection(subject_id,current_value,source_event_id,"
+              "authority,status,observed_at,last_confirmed_at,freshness,computed_at) "
+              "VALUES(?,?,0,?,?,?,?,?,?)")
+
+    # GS-24: disputed/tentative 不得出現在 snapshot,尾註計數正確
+    box = sandbox_db()
+    box.execute(ins_sub, ("test.ok",))
+    box.execute(ins_sub, ("test.disp",))
+    box.execute(ins_st, ("test.ok", "VALOK", "owner_decision", "active",
+                         TS, TS, "active_fresh", TS))
+    box.execute(ins_st, ("test.disp", "VALDISP", "assistant_claim", "disputed",
+                         TS, TS, "disputed", TS))
+    text = sc_mod.render_text(box)
+    ok24 = ("VALOK" in text) and ("VALDISP" not in text) and ("1 項" in text)
+    results["GS-24"] = {"title": "serving 姿態:disputed 不進 snapshot", "ok": ok24}
+    box.close()
+
+    # GS-25: secret 樣式值程式強制擋下(snapshot 與 filter 雙驗)
+    box = sandbox_db()
+    box.execute(ins_sub, ("test.sec",))
+    box.execute(ins_st, ("test.sec", "api_key=sk-ABCDEF1234567890abcd",
+                         "owner_decision", "active", TS, TS, "active_fresh", TS))
+    text = sc_mod.render_text(box)
+    ok25 = ("sk-ABCDEF" not in text
+            and sc_mod.secret_hit("Bearer abcdef1234567890")
+            and sc_mod.secret_hit("-----BEGIN RSA PRIVATE KEY-----")
+            and sc_mod.secret_hit("ghp_" + "A" * 24)
+            and not sc_mod.secret_hit("今天吃了茶碗蒸")
+            and not sc_mod.servable("local_only"))
+    results["GS-25"] = {"title": "secret/local_only 程式強制不外供", "ok": ok25}
+    box.close()
+    return results
+
+
 def main() -> int:
     prod = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
     prod.row_factory = sqlite3.Row
@@ -184,7 +223,7 @@ def main() -> int:
     prod.close()
 
     results, passed, failed = {}, 0, 0
-    for cid, r in run_projection_cases().items():
+    for cid, r in {**run_projection_cases(), **run_serving_cases()}.items():
         results[cid] = r
         passed += r["ok"]
         failed += (not r["ok"])

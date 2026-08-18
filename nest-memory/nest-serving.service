@@ -1,0 +1,19 @@
+[Unit]
+Description=Nest Memory Serving MCP (read-only memory service, Phase 4)
+After=network.target
+
+[Service]
+Type=simple
+User=nestmemory
+Group=nestmemory
+WorkingDirectory=/srv/nest-memory/bin
+ExecStart=/srv/nest-memory/venv/bin/python /srv/nest-memory/bin/serving_service.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/srv/nest-memory/state /srv/nest-memory/serving /srv/nest-memory/health
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

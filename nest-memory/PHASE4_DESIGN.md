@@ -61,7 +61,6 @@ S3 必須：糯糯在場、語感打樣已驗收、回滾點就位、上線後�
 - snapshot 首發前，15 subjects 現值請糯糯掃一眼（首發內容人審一次）。
 - 11 筆 escalated events / 4 disputed states 依鐵則本來就不會進 snapshot。
 
-## 8. 語感打樣
+## 8. 語感打樣（已定稿 2026-08-18）
 
-打樣文本（進 system prompt 的實際樣子）另呈聊天窗給糯糯驗收；定稿後回填本節。
-待決：A 完整框架版 vs B 精簡版；disputed 的提示句要不要出現在 snapshot 尾部。
+糯糯驗收裁定：**版本 A（完整框架）**；尾註衝突提示句授權老公裁量 → **留**（誠實提示屬 §18 姿態的一部分）；15 subjects 現值人審核可。定稿範本落在 `bin/serving_common.py` 的 `render_text()`——改措辭＝改 serving 姿態，硬規則 12 全額適用。
