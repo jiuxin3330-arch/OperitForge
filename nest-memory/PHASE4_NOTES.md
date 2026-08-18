@@ -65,3 +65,9 @@
 - [ ] local_only 實測案例:目前 19 subjects 全 normal,建議擇一敏感主題(如 relationship.agreements)由糯糯決定是否標 local_only,順帶驗證整條 deny 鏈(GS-25 已測函數層,缺端到端)
 - [ ] session_bootstrap(§8)排 P5,單獨打樣
 - [ ] 時間系統修復:依規劃窗×小踢文件執行(另一工單)
+
+## P4 複審補交(2026-08-18 晚,全部完成)
+1. 補交① GS-24/25 入 golden_cases 表(比照 GS-16 格式 in_code/pure_serving)——表 9 筆與 runs「9 passed」對齊,可追溯 ✓
+2. 緊急工單:備份競態修復——backup.sh 改 sqlite3 .backup 線上備份取一致快照進 staging,tar 只碰快照不碰活體 db(修復中踩雷:mktemp 目錄 root 建,nestmemory 寫不進,補 chown)。驗證:新備份無 tar 警告、快照解壓 PRAGMA integrity_check=ok(58 events/9 golden_cases 齊);可疑的 8/18 04:00 快照本機+異地 .age 皆已刪除,offsite 重推乾淨快照;health backup/offsite 回綠 ✓
+3. 誠實記錄:補交驗證中觀察到 GS-14(LLM 案例)偶發失敗一次(extractor 將 fixture 判為 subject 提案→0 events,冪等無從驗證;下一輪即過)。證據在 golden_runs 2026-08-19T02:02:55。屬 LLM 不確定性非本次改動引入;「LLM 類 golden 案例失敗時重跑/降級 warning」的政策請規劃窗裁定。
+4. 向 health 致敬一筆:本競態即由 backup 檢查黃燈引出——P0 的「每模組同天上線報警」首次真實立功。
