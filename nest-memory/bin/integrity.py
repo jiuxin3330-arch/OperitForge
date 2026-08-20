@@ -37,16 +37,31 @@ def main() -> int:
 
     raw = {r[0]: (r[1], bool(r[2])) for r in dest.execute(
         "SELECT source_rowid, content_hash, deleted FROM raw_messages")}
+    raw_max = dest.execute(
+        "SELECT COALESCE(MAX(source_rowid),0) FROM raw_messages WHERE deleted=0"
+    ).fetchone()[0]
+    # 2026-08-21 修復:比 raw_max 新的來源列=兩輪 mirror 之間剛寫入的尾端 lag,
+    # 5 分鐘內自然補齊,不算丟失(凌晨自主時段撞 04:20 檢查天天誤報)。
+    # 中段破洞(rowid<=raw_max 卻不在 raw)仍是真丟失;尾端超過上限視同 mirror 死亡。
+    TAIL_LAG_CAP = 200
+    tail_lag = 0
     seen = set()
     for r in src.execute("SELECT rowid AS __rowid, * FROM messages"):
         row = dict(r)
         rowid = row.pop("__rowid")
         seen.add(rowid)
         entry = raw.get(rowid)
-        if entry is None or entry[1]:
+        if entry is None:
+            if rowid > raw_max:
+                tail_lag += 1
+            else:
+                problems["missing"] += 1
+        elif entry[1]:
             problems["missing"] += 1
         elif entry[0] != row_hash(row):
             problems["mismatched"] += 1
+    if tail_lag > TAIL_LAG_CAP:
+        problems["missing"] += tail_lag
     for rowid, (_, deleted) in raw.items():
         if not deleted and rowid not in seen:
             problems["stale_undeleted"] += 1
@@ -62,9 +77,6 @@ def main() -> int:
             problems["mismatched"] += abs(s - d)
 
     src_max = src.execute("SELECT COALESCE(MAX(rowid),0) FROM messages").fetchone()[0]
-    raw_max = dest.execute(
-        "SELECT COALESCE(MAX(source_rowid),0) FROM raw_messages WHERE deleted=0"
-    ).fetchone()[0]
     ok = not any(problems.values())
     result = {
         "ts": datetime.now(TZ).isoformat(),
@@ -73,6 +85,7 @@ def main() -> int:
         "source_messages": len(seen),
         "raw_messages_active": sum(1 for _, d in raw.values() if not d),
         "lag_rows": max(0, src_max - raw_max),
+        "tail_lag": tail_lag,
         "aux": aux_counts,
     }
     src.close()
