@@ -1,0 +1,19 @@
+[Unit]
+Description=Nest Memory Review Console (owner-only write endpoint, Phase B S1)
+After=network.target
+
+[Service]
+Type=simple
+User=nestmemory
+Group=nestmemory
+WorkingDirectory=/srv/nest-memory/bin
+ExecStart=/usr/bin/python3 /srv/nest-memory/bin/console_service.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/srv/nest-memory/db /srv/nest-memory/state /srv/nest-memory/health
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

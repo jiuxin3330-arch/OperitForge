@@ -194,6 +194,19 @@ CREATE TABLE IF NOT EXISTS state_projection (
     computed_at       TEXT NOT NULL
 );
 """),
+    (4, "console_audit", """
+CREATE TABLE console_audit (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts           TEXT NOT NULL,
+    action       TEXT NOT NULL,
+    target       TEXT NOT NULL DEFAULT '',
+    args_json    TEXT NOT NULL DEFAULT '{}',
+    result       TEXT NOT NULL CHECK(result IN ('ok','denied','error')),
+    error_msg    TEXT NOT NULL DEFAULT '',
+    remote_addr  TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX idx_console_audit_ts ON console_audit(ts);
+"""),
 ]
 
 

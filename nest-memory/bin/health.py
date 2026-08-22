@@ -110,6 +110,16 @@ def check_proposals() -> tuple[str, str]:
         return "warning", f"檢查失敗({type(exc).__name__})"
 
 
+def check_console() -> tuple[str, str]:
+    """Phase B S1:Review Console(8772)存活。owner-facing,死了會被立刻察覺。"""
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", 8772), timeout=3):
+            return "ok", "console up"
+    except OSError:
+        return "warning", "console 8772 不通"
+
+
 def check_serving() -> tuple[str, str]:
     """Phase 4:renderer 新鮮度 + MCP 服務存活(egress 出口在服務內強制)。"""
     lvl, msg = age_check(
@@ -154,6 +164,7 @@ def main() -> int:
         "serving": check_serving(),
         "nudge_last_run": age_check(
             f"{HEALTH_DIR}/nudge_last_run.json", 26, 74, "nudge"),
+        "console": check_console(),
     }
 
     state = {"sent": {}, "digest_last_date": ""}
