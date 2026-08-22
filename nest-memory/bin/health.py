@@ -152,6 +152,8 @@ def main() -> int:
         "projection": age_check(
             f"{HEALTH_DIR}/projection_last_run.json", 26, 74, "projection"),
         "serving": check_serving(),
+        "nudge_last_run": age_check(
+            f"{HEALTH_DIR}/nudge_last_run.json", 26, 74, "nudge"),
     }
 
     state = {"sent": {}, "digest_last_date": ""}

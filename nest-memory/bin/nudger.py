@@ -37,7 +37,7 @@ def build_nudge_text(event) -> str:
     label = event["summary"] or event["value_after"] or event["subject_id"]
     label = str(label).replace("\n", " ").strip()[:80]
     return (f"〔小紙條・來自檔案室〕今天發生了一件事:{label}"
-            f"(主題:{event['subject_id']})。要不要自己寫一筆日記記下來?"
+            f"(主題:{event['subject_id']})。要不要自己記一筆?"
             "怎麼記由你決定,檔案室不會代筆。")
 
 
