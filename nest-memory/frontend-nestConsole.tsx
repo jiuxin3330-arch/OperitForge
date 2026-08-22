@@ -8,7 +8,6 @@
  * - 不出現工程術語(subject_id 用 friendlySubject 轉中文)
  */
 import { useCallback, useEffect, useState } from "react";
-import type { FormEvent } from "react";
 import {
   consoleApproveProposal,
   consoleListEvents,
@@ -183,6 +182,7 @@ export function MemoryCorridor({
           </div>
         </button>
       </div>
+      <div className="nest-corridor-foot">兩者不互相冒充、互相補充。</div>
     </div>
   );
 }
@@ -230,8 +230,7 @@ export function NestArchive({
     void reload();
   }, [reload]);
 
-  async function submitSearch(evt: FormEvent) {
-    evt.preventDefault();
+  async function submitSearch() {
     const q = query.trim();
     if (!q) {
       setSearchResults(null);
@@ -298,18 +297,25 @@ export function NestArchive({
         </div>
       </div>
 
-      <form className="nest-search" onSubmit={submitSearch}>
+      <div className="nest-search">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-4 -4" />
         </svg>
         <input
           type="text"
+          className="nest-search-input"
           value={query}
           placeholder="搜尋事件、主題、引文"
           onChange={(e) => {
             setQuery(e.target.value);
             if (!e.target.value.trim()) setSearchResults(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void submitSearch();
+            }
           }}
           aria-label="搜尋"
         />
@@ -326,7 +332,7 @@ export function NestArchive({
             ×
           </button>
         )}
-      </form>
+      </div>
 
       {/* 現況登記 */}
       <div className="nest-section-head">

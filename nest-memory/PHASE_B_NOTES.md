@@ -137,3 +137,33 @@
 **待做(S4-S5)**:
 - S4 負面測試:chat agent 呼叫 8772 必失敗(chatagent 身份無 token)
 - S5 糯糯真實驗收:殺 app 重開 → 進記憶頁 → 應該看到走廊+兩扇門 → 進 NM 房間 → 現況/事件/待審有資料 → 批准/駁回一次真流程
+
+---
+
+## S3.1 修四個 UI 問題(2026-08-23,糯糯真機回報)
+
+**回報症狀**:
+1. 夜間模式:卡片白底顯示在深色 chatnest 背景上(醜)
+2. 檔案室頁面無法滑動至底部
+3. 搜尋欄「方框套方框」超級難看,跟 demo 完全不像
+4. 大門頁面下面一大片空空
+
+**根因診斷**:
+1. 我第一版用了不存在的 tokens(`--nest-paper` `--nest-ground` `--nest-text-soft` `--nest-text-mute`)→ 全數 fallback 到硬編碼白色,深色模式完全沒反應
+2. `.nest-archive` `.nest-corridor` 沒留 bottom padding,底部被下方 nav 蓋住
+3. chatnest 有全域 `input, textarea { border: 1px solid; background: #fff; ... }`,我原本 `<form>` 裡的裸 `<input>` 疊上這個全域 style,變成「小 pill 包在大方框裡」
+4. 兩扇門加 `.nest-corridor-foot` 一行「兩者不互相冒充、互相補充。」補氣氛,`min-height: 148px` 讓門更立體
+
+**修法**:
+- `styles.css`:重寫 Nest Console 段(約 340 行),全數改用 chatnest 實際 tokens(`--nest-bg` `--nest-surface` `--nest-surface-strong` `--nest-text` `--nest-muted` `--nest-line` `--nest-ticket` `--nest-ticket-hi` `--nest-accent`),深色模式自動生效
+- `.nest-search-input` 獨立 class(閃全域 input 樣式);`.nest-archive` `.nest-corridor` 加 `padding-bottom: 120px`
+- `.nest-door { min-height: 148px }` + 新 `.nest-corridor-foot`(小號米黃字置中)
+- 提案卡從 `--nest-ticket-hi` gradient 到 `--nest-ticket`(日夜雙模自動切)
+- `nestConsole.tsx`:`<form onSubmit>` → `<div>` + `<input>` 加 `className="nest-search-input"` + `onKeyDown` Enter 觸發搜尋;`MemoryCorridor` 末尾加 `<div className="nest-corridor-foot">兩者不互相冒充、互相補充。</div>`
+- `sw.js` v138 → v139(強制 PWA 重抓)
+
+**驗證**:
+- tsc 0 錯 ✓
+- vite build 成功(vite v8.2.0,70 modules,index-B5TQ4d-T.css 331KB,index-BBw_gwYb.js 543KB)✓
+- 三件套複製到 dist ✓
+- 4 個服務 active ✓
