@@ -233,3 +233,29 @@ chat agent 的工具面只有 anchor-memory(AM),沒有任何 nest console 動詞
 
 **S5 待做(最後一關)**:糯糯真實驗收 —— 在 app 檔案室對一筆真提案批准(volatility 自己選)或駁回,
 全程不經聊天窗口,事後 audit 應出現 `owner_via_console` 落帳。
+
+---
+
+## S5 完成:糯糯真實驗收(2026-08-24)—— 工單 B 全部收工
+
+**背景**:S1 測試把 15 筆提案全處理完(2 approved / 13 rejected),待審區為空。
+以 nestmemory 身份補一筆真實提案 #18 `nest_memory.review_console`(檔案室設施本身,
+引文用糯糯當下那句「沒有看到待審!」)。
+
+**流程(全程 app 內、不經聊天窗口)**:
+1. 走廊門卡 badge 正確顯示「1 待審」,進房看到票券卡(截圖存證)
+2. 糯糯先釐清了「批准 = 開新主題」的語意,然後以「已有 nest_memory.phase 主題
+   涵蓋,不需疊床架屋」為由裁定**駁回** —— 正當的 owner 裁量,駁回與批准同權重
+3. 帳面驗證:
+   - `subject_proposals` #18 → `rejected` ✓
+   - `console_audit`:`2026-08-24T03:06:09 | reject_proposal | 18 | ok | 127.0.0.1` ✓
+   - pending 歸零、走廊 badge 應消失 ✓
+
+**全鏈路走通**:糯糯手指 → app → backend(`_require_owner_view` + CSRF)→
+httpx → 8772 token 認證 → memory.db(nestmemory 身份)→ audit 落帳。
+
+**工單 B 狀態:S1 ✓ S2 ✓ S3 ✓(含 S3.1/S3.2 返修)S4 ✓ S5 ✓ —— 全部完成。**
+
+**遺留待辦(非本工單)**:
+- 票券卡美化(糯糯:「之後美化要改!」)—— 另開 UI 調整輪
+- extractor batch 14 bug(規劃窗裁定中)
