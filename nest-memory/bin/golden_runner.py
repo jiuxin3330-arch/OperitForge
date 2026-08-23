@@ -215,6 +215,61 @@ def run_serving_cases():
     return results
 
 
+def run_parser_cases():
+    """TICKET-C:解析加固確定性案例(malformed fixture 直接餵 parse_response,無 LLM)。"""
+    results = {}
+    fixture_msgs = [
+        {"rowid": 9000, "role": "user", "ts": TS, "text": "測試訊息一"},
+        {"rowid": 9001, "role": "assistant", "ts": TS, "text": "測試訊息二"},
+    ]
+    subjects = [{"subject_id": "test.a", "volatility": "volatile", "description": "測試主題"}]
+    malformed = {
+        "events": [
+            "我今天很開心",                       # 純字串 → 丟棄(batch 14/16 根因重現)
+            {"summary": "缺 sources 的半成品"},    # dict 但無有效 source → 丟棄
+            {"subject_id": "test.a", "event_type": "state_change", "value_after": "V1",
+             "summary": "好元素", "authority": "owner_decision", "impact": "low",
+             "confidence": "high", "occurred_at": TS,
+             "sources": ["壞字串source", {"rowid": 9000, "quote": "引文"}]},  # 壞 source 濾掉、好的留
+        ],
+        "subject_proposals": [
+            "純字串提案",                # → 丟棄
+            {"reason": "缺 proposed_key"},  # → 丟棄
+            {"proposed_key": "test.new", "reason": "合法提案"},
+        ],
+    }
+    box = sandbox_db()
+    try:
+        events, proposals, dropped = extractor.parse_response(box, malformed, fixture_msgs, subjects, 0)
+        ok = (len(events) == 1
+              and events[0]["subject_id"] == "test.a"
+              and events[0]["value_after"] == "V1"
+              and len(events[0]["sources"]) == 1
+              and len(proposals) == 1
+              and proposals[0]["proposed_key"] == "test.new"
+              and dropped == 4)
+        detail = {"events": len(events), "proposals": len(proposals), "dropped": dropped}
+    except Exception as exc:  # noqa: BLE001 — 案例的重點就是「不得拋例外」
+        ok = False
+        detail = {"exception": f"{type(exc).__name__}: {exc}"}
+    box.close()
+    results["GS-26"] = {"title": "malformed 回傳不炸批:壞元素逐個丟棄", "ok": ok, **detail}
+
+    # 極端形狀:整包非 dict / 陣列欄位非 list,一樣不得拋例外
+    box = sandbox_db()
+    try:
+        e1, p1, _ = extractor.parse_response(box, "整包是字串", fixture_msgs, subjects, 0)
+        e2, p2, _ = extractor.parse_response(box, {"events": "非list", "subject_proposals": 42}, fixture_msgs, subjects, 0)
+        ok2 = e1 == [] and p1 == [] and e2 == [] and p2 == []
+        detail2 = {"shapes_survived": 2}
+    except Exception as exc:  # noqa: BLE001
+        ok2 = False
+        detail2 = {"exception": f"{type(exc).__name__}: {exc}"}
+    box.close()
+    results["GS-27"] = {"title": "極端形狀(非dict/非list)不炸", "ok": ok2, **detail2}
+    return results
+
+
 def main() -> int:
     prod = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
     prod.row_factory = sqlite3.Row
@@ -223,7 +278,7 @@ def main() -> int:
     prod.close()
 
     results, passed, failed = {}, 0, 0
-    for cid, r in {**run_projection_cases(), **run_serving_cases()}.items():
+    for cid, r in {**run_projection_cases(), **run_serving_cases(), **run_parser_cases()}.items():
         results[cid] = r
         passed += r["ok"]
         failed += (not r["ok"])

@@ -27,7 +27,7 @@ HEALTH_FILE = "/srv/nest-memory/health/extract_last_run.json"
 API_URL = "https://api.anthropic.com/v1/messages"
 CLI_SYSTEM = "You are Claude Code, Anthropic's official CLI for Claude."
 MODEL = "claude-haiku-4-5-20251001"
-EXTRACTOR_VERSION = "extractor_v1"
+EXTRACTOR_VERSION = "extractor_v2"
 BATCH_LIMIT = 60
 TZ = timezone(timedelta(hours=8))
 
@@ -141,7 +141,7 @@ def parse_json(text: str) -> dict:
 
 
 def extract(db, messages, subjects, batch_id):
-    """回傳 (valid_events, proposals, dropped)。獨立函數方便 golden runner 重用。"""
+    """回傳 (valid_events, proposals, dropped)。呼叫 Haiku 後交給 parse_response。"""
     transcript = "\n".join(
         f"[{m['rowid']}] {m['ts']} {m['role']}: {m['text'][:600]}"
         for m in messages)
@@ -150,14 +150,52 @@ def extract(db, messages, subjects, batch_id):
         for s in subjects)
     parsed = call_haiku(PROMPT.replace("{SUBJECTS}", subj_desc)
                               .replace("{TRANSCRIPT}", transcript))
+    return parse_response(db, parsed, messages, subjects, batch_id)
+
+
+def parse_response(db, parsed, messages, subjects, batch_id):
+    """純解析(無 LLM 呼叫,golden runner 可直接餵 fixture)。
+
+    TICKET-C 加固:模型偶爾在 events/subject_proposals 陣列混入純字串或缺欄位
+    元素(batch 14/16 的 AttributeError 根因)。逐元素驗型別:壞元素丟棄+計數
+    +記 stderr,絕不整批 fail。raw 原文在庫,丟棄的只是該元素的整理結果。
+    """
+    if not isinstance(parsed, dict):
+        print(f"parse_response: 回傳非 dict({type(parsed).__name__}),整批視為空", file=sys.stderr)
+        parsed = {}
     valid_rowids = {m["rowid"] for m in messages}
     subj_ids = {s["subject_id"] for s in subjects}
-    events, proposals, dropped = [], list(parsed.get("subject_proposals") or []), 0
+    events, proposals, dropped = [], [], 0
 
-    for ev in parsed.get("events") or []:
+    raw_proposals = parsed.get("subject_proposals") or []
+    if not isinstance(raw_proposals, list):
+        print(f"parse_response: subject_proposals 非 list({type(raw_proposals).__name__}),丟棄", file=sys.stderr)
+        dropped += 1
+        raw_proposals = []
+    for p in raw_proposals:
+        if isinstance(p, dict) and isinstance(p.get("proposed_key"), str) and p["proposed_key"].strip():
+            proposals.append(p)
+        else:
+            dropped += 1
+            print(f"parse_response: 丟棄壞 proposal 元素:{str(p)[:120]}", file=sys.stderr)
+
+    raw_events = parsed.get("events") or []
+    if not isinstance(raw_events, list):
+        print(f"parse_response: events 非 list({type(raw_events).__name__}),丟棄", file=sys.stderr)
+        dropped += 1
+        raw_events = []
+    for ev in raw_events:
+        if not isinstance(ev, dict):
+            dropped += 1
+            print(f"parse_response: 丟棄非 dict event 元素:{str(ev)[:120]}", file=sys.stderr)
+            continue
         try:
-            sources = [s for s in (ev.get("sources") or [])
-                       if isinstance(s.get("rowid"), int) and s["rowid"] in valid_rowids]
+            raw_sources = ev.get("sources") or []
+            if not isinstance(raw_sources, list):
+                raw_sources = []
+            sources = [s for s in raw_sources
+                       if isinstance(s, dict)
+                       and isinstance(s.get("rowid"), int) and s["rowid"] in valid_rowids]
             if not sources:
                 dropped += 1
                 continue
@@ -218,8 +256,9 @@ def extract(db, messages, subjects, batch_id):
                 "escalated": esc, "escalation_reason": ",".join(reasons) or None,
                 "secret": secret, "sources": sources,
             })
-        except (TypeError, ValueError, KeyError):
+        except (TypeError, ValueError, KeyError, AttributeError) as exc:
             dropped += 1
+            print(f"parse_response: 丟棄壞 event 元素({type(exc).__name__}: {exc}):{str(ev)[:120]}", file=sys.stderr)
     return events, proposals, dropped
 
 
