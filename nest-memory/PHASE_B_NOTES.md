@@ -198,3 +198,38 @@
 - 提案卡(票券漸層)與事件(時間線)本無外框,不動
 
 sw.js:v139 → v143(每輪 bump 強制 PWA 重抓)。教訓:新擬態要抄 chatnest 現成的 shadow 配方,不要自己發明。
+
+**4. 走廊門卡去框(v144)**:
+- 糯糯:門卡照家頁「牧牧與糯糯」那片的感覺 —— 底色與背景同色,靠陰影浮起
+- `.nest-door`:`border: 0`、`background: var(--nest-bg)`、新擬態外凸
+  `4px 4px 12px rgb(91 79 60 / .12), -4px -4px 12px rgb(255 255 255 / .6)`,active 下沉 1px
+- 深色另配:`4px 4px 12px rgb(0 0 0 / .28), -3px -3px 10px rgb(255 255 255 / .04)`
+
+**5. 深色搜尋欄「月牙陰影」修復(v145)**:
+- 症狀:深色模式搜尋 pill 中間多一塊實心遮罩,inset 陰影只剩兩端月牙
+- 根因:全域 `html[data-theme="dark"] input[type="text"] { background: var(--nest-bg) }`
+  特異性 (0,1,2) > `.nest-search-input` (0,1,0),深色時把 input 底色填回實心塊
+- 修法:補 `html[data-theme="dark"] input.nest-search-input` 更高特異性壓回 transparent
+- ✓ 全部驗收過(「好!沒問題了!」)
+
+---
+
+## S4 完成:負面測試(2026-08-23)
+
+確認聊天窗口(chatagent 身份)對 8772 console 絕無寫入口,七項全過:
+
+| # | 場景 | 預期 | 實測 |
+|---|---|---|---|
+| 1 | chatagent 讀 `/srv/nest-memory/state/console_token` | Permission denied | ✓ |
+| 2 | chatagent 讀 `/srv/chatnest-next/runtime/nest-console-token` | Permission denied | ✓ |
+| 3 | chatagent 無 token GET /proposals | 401 | ✓ |
+| 4 | chatagent 錯 token GET /proposals | 401 | ✓ |
+| 5 | chatagent 錯 token POST approve | 401 | ✓ |
+| 6 | 以上 denied 全落 console_audit(`bad or missing token`)| 有 | ✓ |
+| 7 | chatagent 直開 memory.db 寫入 | unable to open database | ✓ |
+
+另確認:`console_service.py` 零 `mcp` import(grep = 0)—— 硬規則 5(絕不註冊為 MCP 工具)成立;
+chat agent 的工具面只有 anchor-memory(AM),沒有任何 nest console 動詞。
+
+**S5 待做(最後一關)**:糯糯真實驗收 —— 在 app 檔案室對一筆真提案批准(volatility 自己選)或駁回,
+全程不經聊天窗口,事後 audit 應出現 `owner_via_console` 落帳。
