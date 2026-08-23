@@ -167,3 +167,34 @@
 - vite build 成功(vite v8.2.0,70 modules,index-B5TQ4d-T.css 331KB,index-BBw_gwYb.js 543KB)✓
 - 三件套複製到 dist ✓
 - 4 個服務 active ✓
+
+---
+
+## S3.2 逐項返修(2026-08-23,糯糯真機逐一驗收)
+
+糯糯要求「一次修一個」,三輪:
+
+**1. 搜尋欄(v140-v141)**:
+- 上一輪只做了「單一 pill + border 線」,跟記憶頁 demo 的新擬態完全不像 → 返工
+- 改為照 `.memory-search-trigger` 同款:`border: 0`、`background: var(--nest-bg)`(與頁底同色)、
+  內陰影 `inset 3px 3px 8px rgb(91 79 60 / .08), inset -3px -3px 8px rgb(255 255 255 / .54)`(凹陷感)
+- input 完全透明填滿 pill:override 全域樣式含 `:focus`,`-webkit-appearance: none`
+- 深色模式:`inset 3px 3px 8px rgb(0 0 0 / .24), inset -2px -2px 6px rgb(255 255 255 / .035)`
+- 糯糯追加:圓角 16px → 999px(全 pill 端)✓ 驗收過
+
+**2. 檔案室/走廊無法交互(v142)**:
+- 症狀:除搜尋欄可輸入外,整頁無法滑動、無法點擊
+- 根因:`.workspace` 是 `position: absolute + overflow: hidden`,子頁面必須自己當滾動容器;
+  `.nest-archive` / `.nest-corridor` 只寫了 padding-bottom 沒寫 overflow → 內容被夾死在可視區外
+- 修法(照 `.memory-page` 模式):兩者都加 `height: 100%; min-height: 0; overflow-y: auto;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch`,archive 的底部 padding 補 safe-area
+- ✓ 驗收過(「可以動了!」)
+
+**3. 現況登記卡去框(v143)**:
+- 糯糯:參考記憶庫卡片(`.memory-paper-card`),刪外框線,用底部陰影 + 背景區分
+- `.nest-state-row`:`border: 0`、`border-radius: 15px`、`background: #fffef9`、
+  `box-shadow: 2px 3px 10px rgb(120 96 52 / .1)`(與 memory-paper-card 同款)
+- 深色:`background: color-mix(in srgb, var(--nest-bg), #fff 4%)`、`box-shadow: none`(同 memory 卡深色策略)
+- 提案卡(票券漸層)與事件(時間線)本無外框,不動
+
+sw.js:v139 → v143(每輪 bump 強制 PWA 重抓)。教訓:新擬態要抄 chatnest 現成的 shadow 配方,不要自己發明。
