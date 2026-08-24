@@ -114,3 +114,23 @@ v148 票券卡被退回(按鈕不好看、票色髒)後,8/25 與糯糯兩輪討�
 - [ ] sw +1、線上 8790 吐新資產
 - [ ] 人格語言零改動、api 零改動
 - [ ] 糯糯點頭才進下一步;最終真機驗收
+
+## 附錄:打版截圖怎麼做(工作窗卡住看這裡)
+
+不要嘗試登入線上頁面截圖(要 auth,截不到)。用「mock 試衣間」法,前輪驗證過:
+
+1. 在自己環境的 scratchpad 寫一個獨立 mock html:
+   - `<style>` 裡貼上 :root 的 --nest-* tokens(亮色一套+`html[data-theme="dark"]` 一套,
+     從 styles.css 2249-2330 抄)+這次新寫的樣式區塊
+   - `<body>` 手寫目標元件的 markup(和 nestConsole.tsx 的 JSX 結構一致),塞 2-3 筆假資料
+   - 抽屜這種互動件,靜態擺出兩個狀態各一份(關著的+開著的)就能看
+2. 截圖(環境裡有 /opt/pw-browsers/chromium):
+   `chromium --headless=new --disable-gpu --no-sandbox --hide-scrollbars --window-size=500,900 --screenshot=out.png "file://$PWD/mock.html"`
+   - ⚠️ headless 視口有 500px 下限,`--window-size=390` 是假的!驗 390 要在 mock 的
+     body 上加 `width:390px;margin:0 auto`,用 500 寬視口截
+   - 暗色版:把 html 標籤改成 `<html data-theme="dark">` 另存一份再截
+3. 把 PNG 用傳檔功能直接發到聊天裡給糯糯(她手機看得到)
+4. 她點頭後才把樣式真正寫進 styles.css/nestConsole.tsx → build → 部署
+
+B 計畫(環境裡沒瀏覽器或傳檔失敗):跳過 mock,直接小步寫進源碼 build 部署
+(備份+dist.prev 都在,滾回容易),請糯糯真機看。小步+可滾回=安全,卡住不動最不安全。
