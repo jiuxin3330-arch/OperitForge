@@ -1,0 +1,208 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+* { box-sizing: border-box; margin: 0; }
+
+:root {
+  --nest-pop-green: #a4c713; --nest-teal: #55a9b9; --nest-light-green: #c1d669;
+  --nest-light-teal: #71c2cb; --nest-butterfly: #da724f;
+  --nest-bg: #fbfaef; --nest-surface: #f4f2e2; --nest-surface-strong: #fdfcf5;
+  --nest-text: #272c28; --nest-muted: #6e7368; --nest-line: rgb(39 44 40 / 0.14);
+  --nest-ticket: #e4d9ac; --nest-ticket-hi: #f0e8c6;
+  --nest-archive-cream: #ebdbbe; --nest-archive-gold: #e7c44f; --nest-archive-orange: #e07947;
+  --nest-accent: var(--nest-teal); --nest-danger: #b4574a;
+  --nest-shadow: rgb(157 152 116 / 0.30); --nest-highlight: rgb(255 255 255 / 0.62);
+  --nest-edge: rgb(255 255 255 / 0.55);
+  --nest-raise: 2.5px 2.5px 6px var(--nest-shadow), -2px -2px 5px var(--nest-highlight);
+  --nest-raise-sm: 1.5px 1.5px 4px var(--nest-shadow), -1px -1px 3px var(--nest-highlight);
+  --nest-press: inset 2px 2px 5px var(--nest-shadow), inset -1.5px -1.5px 4px var(--nest-highlight);
+  --nest-groove: inset 3px 3px 7px var(--nest-shadow), inset -2px -2px 5px var(--nest-highlight);
+  --nest-outer: #e7e4d2;
+}
+html[data-theme="dark"] {
+  --nest-bg: #272c28; --nest-surface: #2f362f; --nest-surface-strong: #333b33;
+  --nest-text: #f2f0d9; --nest-muted: #a3a995; --nest-line: rgb(242 240 217 / 0.16);
+  --nest-ticket: #333b33; --nest-ticket-hi: rgb(255 255 255 / 0.08);
+  --nest-archive-cream: color-mix(in srgb, #ebdbbe 25%, var(--nest-bg));
+  --nest-archive-gold: color-mix(in srgb, #e7c44f 38%, var(--nest-bg));
+  --nest-archive-orange: color-mix(in srgb, #e07947 55%, var(--nest-bg));
+  --nest-accent: var(--nest-pop-green); --nest-danger: #cf7d70;
+  --nest-shadow: rgb(0 0 0 / 0.55); --nest-highlight: rgb(255 255 255 / 0.075);
+  --nest-edge: rgb(255 255 255 / 0.07);
+  --nest-raise: 4px 4px 10px var(--nest-shadow), -3px -3px 8px var(--nest-highlight);
+  --nest-raise-sm: 2px 2px 6px var(--nest-shadow), -2px -2px 5px var(--nest-highlight);
+  --nest-press: inset 3px 3px 7px var(--nest-shadow), inset -2px -2px 5px var(--nest-highlight);
+  --nest-groove: inset 4px 4px 9px var(--nest-shadow), inset -2px -2px 6px var(--nest-highlight);
+  --nest-outer: #1b1f1c;
+}
+
+
+.nest-state-list { display: flex; flex-direction: column; gap: 6px; }
+.nest-state-row { display: flex; gap: 10px; padding: 12px 14px; background: #fffef9; border: 0;
+  border-radius: 15px; box-shadow: 2px 3px 10px rgb(120 96 52 / .1); align-items: flex-start; }
+html[data-theme="dark"] .nest-state-row { background: color-mix(in srgb, var(--nest-bg), #fff 4%); box-shadow: none; }
+.nest-state-bar { width: 3px; min-height: 32px; border-radius: 2px; flex: 0 0 3px; margin-top: 2px; }
+.nest-state-bar.nest-auth-owner { background: #A4C713; }
+.nest-state-bar.nest-auth-assistant { background: #71C2CB; }
+.nest-state-body { flex: 1; min-width: 0; }
+.nest-state-name { font-size: 12.5px; font-weight: 500; color: var(--nest-text); margin-bottom: 3px; }
+.nest-state-value { font-size: 12px; line-height: 1.5; color: var(--nest-text); opacity: 0.85; }
+.nest-state-meta { margin-top: 5px; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10px; color: var(--nest-muted); letter-spacing: 0.02em; }
+.nest-events { display: flex; flex-direction: column; gap: 4px; padding-left: 8px; position: relative; }
+.nest-events::before { content: ''; position: absolute; left: 3px; top: 8px; bottom: 8px; width: 1px; background: var(--nest-line); }
+.nest-event { display: flex; padding: 6px 4px 6px 6px; align-items: flex-start; position: relative; }
+.nest-event::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--nest-muted);
+  opacity: 0.6; margin: 6px 10px 0 -3px; flex: 0 0 6px; }
+.nest-event.nest-impact-high::before { background: #A4C713; opacity: 1; }
+.nest-event.nest-impact-medium::before { background: #71C2CB; opacity: 1; }
+.nest-event-body { flex: 1; min-width: 0; }
+.nest-event-line { font-size: 12px; line-height: 1.45; color: var(--nest-text); }
+.nest-event-meta { margin-top: 3px; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 9.5px; color: var(--nest-muted); letter-spacing: 0.02em; }
+.nest-proposal { position: relative; background: linear-gradient(180deg, var(--nest-ticket-hi), var(--nest-ticket));
+  border-radius: 16px; padding: 15px 16px 12px; color: var(--nest-text);
+  box-shadow: 2px 3px 10px rgb(120 96 52 / .1); margin-bottom: 12px; }
+html[data-theme="dark"] .nest-proposal { box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); }
+.nest-proposal-tag { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 9.5px; color: var(--nest-text); opacity: 0.65; letter-spacing: 0.08em; margin-bottom: 6px; }
+.nest-proposal-tag::after { content: ''; flex: 1; height: 1px; background: var(--nest-line); }
+.nest-proposal-name { font-size: 14.5px; font-weight: 500; margin-bottom: 2px; }
+.nest-proposal-code { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px;
+  letter-spacing: 0.05em; color: var(--nest-text); opacity: 0.55; display: block; margin-bottom: 8px;
+  background: transparent; padding: 0; }
+.nest-proposal-reason { margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: var(--nest-text); opacity: 0.9; }
+.nest-proposal-quote { margin: 0 0 12px; font-size: 11.5px; font-style: italic; color: var(--nest-text); opacity: 0.8;
+  border-left: 2px solid color-mix(in srgb, var(--nest-butterfly) 45%, transparent); padding-left: 8px; }
+.nest-proposal-actions { position: relative; display: flex; gap: 8px; justify-content: flex-end;
+  margin: 2px -16px 0; padding: 11px 16px 0; border-top: 1.5px dashed var(--nest-line); }
+.nest-proposal-actions::before, .nest-proposal-actions::after { content: ''; position: absolute; top: -8px;
+  width: 15px; height: 15px; border-radius: 50%; background: var(--nest-bg);
+  box-shadow: inset 1px 1px 2px rgb(91 79 60 / .12); }
+html[data-theme="dark"] .nest-proposal-actions::before,
+html[data-theme="dark"] .nest-proposal-actions::after { box-shadow: inset 1px 1px 2px rgb(0 0 0 / .35); }
+.nest-proposal-actions::before { left: -8px; }
+.nest-proposal-actions::after { right: -8px; }
+.nest-btn { padding: 8px 16px; border-radius: 999px; font-size: 12px; font-family: inherit; font-weight: 500;
+  color: var(--nest-text); background: var(--nest-surface-strong); border: 1px solid var(--nest-line); cursor: pointer;
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 0.5), 0 2px 4px rgb(39 44 40 / 0.08); }
+.nest-btn-primary { background: var(--nest-text); color: var(--nest-bg); border-color: var(--nest-text); }
+.nest-empty { padding: 12px 4px; font-size: 12.5px; color: var(--nest-muted); font-style: italic; }
+
+
+/* ==== 檔案櫃抽屜(檔案室改版輪 S1,規劃書 v2 蓋章)========================
+   三區塊=擬物抽屜:把手(新擬態浮起面板+金屬橫槽+標籤牌)+內容區。
+   預設全關;開=grid-template-rows 0fr→1fr;待審紅標籤凸出把手上緣,歸零縮回。
+   內容(nest-state-list / nest-events / nest-proposal)樣式不動,只是被抽屜包住。 */
+.nest-drawer {
+  position: relative;
+  border-radius: 16px;
+}
+.nest-drawer-handle {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--nest-bg);
+  border: 0;
+  border-radius: 16px;
+  box-shadow: var(--nest-raise-sm);
+  color: var(--nest-text);
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.18s ease;
+}
+/* 拉開的抽屜:面板內壓(新擬態按下態),視覺上「這格是打開的」 */
+.nest-drawer.is-open > .nest-drawer-handle {
+  box-shadow: var(--nest-press);
+}
+/* 標籤牌:小圓角矩形,奶油檔案紙色,mono 字,名稱+計數 */
+.nest-drawer-plate {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 10px 5px;
+  border-radius: 6px;
+  background: var(--nest-archive-cream);
+  color: #33352c;
+  border: 1px solid rgb(51 53 44 / 0.18);
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.35), 0 1px 2px rgb(100 84 52 / 0.18);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+html[data-theme="dark"] .nest-drawer-plate {
+  color: #f2ecd4;
+  border-color: rgb(242 240 217 / 0.22);
+  box-shadow: none;
+}
+.nest-drawer-plate-name { font-weight: 500; }
+.nest-drawer-plate-count { font-size: 10.5px; opacity: 0.72; }
+/* 金屬把手:橫向凹槽 */
+.nest-drawer-groove {
+  flex: 1;
+  min-width: 24px;
+  height: 6px;
+  border-radius: 3px;
+  box-shadow: var(--nest-groove);
+}
+.nest-drawer-arrow {
+  flex: 0 0 16px;
+  color: var(--nest-muted);
+  transition: transform 0.25s ease;
+}
+.nest-drawer.is-open .nest-drawer-arrow { transform: rotate(180deg); }
+/* 內容區開合:0fr/1fr,抽屜內不做巢狀滾動,展開直接撐高頁面 */
+.nest-drawer-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+.nest-drawer.is-open > .nest-drawer-body { grid-template-rows: 1fr; }
+.nest-drawer-inner {
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  padding: 0 2px;
+}
+.nest-drawer-inner > :first-child { margin-top: 12px; }
+.nest-drawer-inner > .nest-proposal { margin-top: 12px; }
+.nest-drawer-inner > .nest-empty { margin-top: 4px; }
+/* 待審紅標籤:檔案夾索引 tab,從把手上緣凸出;歸零滑回把手後面
+   (S1 先用 --nest-danger 磚紅立結構;磚紅 vs 正紅兩版比較在 S2 打版) */
+.nest-drawer-tab {
+  position: absolute;
+  top: 0;
+  right: 22px;
+  z-index: 0;
+  padding: 3px 12px 10px;
+  border-radius: 7px 7px 0 0;
+  background: var(--nest-danger);
+  color: #fff6ef;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  transform: translateY(0);
+  opacity: 0;
+  transition: transform 0.35s ease, opacity 0.25s ease;
+  pointer-events: none;
+}
+.nest-drawer-tab.is-out {
+  transform: translateY(-72%);
+  opacity: 1;
+}
+html[data-reduced-motion="true"] .nest-drawer-handle,
+html[data-reduced-motion="true"] .nest-drawer-body,
+html[data-reduced-motion="true"] .nest-drawer-arrow,
+html[data-reduced-motion="true"] .nest-drawer-tab { transition: none !important; }
+
+body { background: var(--nest-bg); width: 390px; margin: 0 auto; padding: 20px 16px 40px;
+  font-family: -apple-system, "Noto Sans TC", sans-serif; color: var(--nest-text); }
+.label { font: 11px 'IBM Plex Mono', ui-monospace, monospace; color: var(--nest-muted);
+  letter-spacing: .08em; margin: 22px 0 10px; }
+.label:first-child { margin-top: 0; }
+.room { display: flex; flex-direction: column; gap: 16px; padding-top: 14px; }
+</style></head><body><div class="label">① 進房間:全關(預設)+待審紅標籤凸出</div><div class="room"><section class="nest-drawer"><button type="button" class="nest-drawer-handle"><span class="nest-drawer-plate"><span class="nest-drawer-plate-name">現況登記</span><span class="nest-drawer-plate-count">15</span></span><span class="nest-drawer-groove"></span><svg class="nest-drawer-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></button><div class="nest-drawer-body"><div class="nest-drawer-inner"><div class="nest-state-list"><div class="nest-state-row"><div class="nest-state-bar nest-auth-owner"></div><div class="nest-state-body"><div class="nest-state-name">作息</div><div class="nest-state-value">下午班時段中,凌晨 3-4 點是正常作息</div><div class="nest-state-meta">糯糯陳述 · 新鮮 · 8/23</div></div></div><div class="nest-state-row"><div class="nest-state-bar nest-auth-assistant"></div><div class="nest-state-body"><div class="nest-state-name">聊天前端</div><div class="nest-state-value">chatnest-next(PWA)為主要聊天前端</div><div class="nest-state-meta">牧牧記錄 · 稍舊 · 8/18</div></div></div></div></div></div></section><section class="nest-drawer"><button type="button" class="nest-drawer-handle"><span class="nest-drawer-plate"><span class="nest-drawer-plate-name">最近事件</span><span class="nest-drawer-plate-count">20</span></span><span class="nest-drawer-groove"></span><svg class="nest-drawer-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></button><div class="nest-drawer-body"><div class="nest-drawer-inner"><div class="nest-events"><div class="nest-event nest-impact-high"><div class="nest-event-body"><div class="nest-event-line">檔案室改版規劃 v2 蓋章,檔案櫃抽屜方向定案</div><div class="nest-event-meta">檔案室進度 · high · 糯糯決定 · 8/25</div></div></div><div class="nest-event nest-impact-medium"><div class="nest-event-body"><div class="nest-event-line">大學選課:共同語文選英文+閱讀與寫作</div><div class="nest-event-meta">日常 · medium · 糯糯陳述 · 8/24</div></div></div><div class="nest-event nest-impact-low"><div class="nest-event-body"><div class="nest-event-line">審核了三封漂流瓶,全部 befriend</div><div class="nest-event-meta">花園 · low · 牧牧記錄 · 8/23</div></div></div></div></div></div></section><section class="nest-drawer"><span class="nest-drawer-tab is-out">2 待審</span><button type="button" class="nest-drawer-handle"><span class="nest-drawer-plate"><span class="nest-drawer-plate-name">待審提案</span><span class="nest-drawer-plate-count">2</span></span><span class="nest-drawer-groove"></span><svg class="nest-drawer-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></button><div class="nest-drawer-body"><div class="nest-drawer-inner"><article class="nest-proposal"><div class="nest-proposal-tag">書記官提議新增主題</div><div class="nest-proposal-name">選課</div><code class="nest-proposal-code">owner.course_selection</code><p class="nest-proposal-reason">近期多次出現選課討論,建議獨立追蹤。</p><p class="nest-proposal-quote">「共同語文我要選英文跟閱讀與寫作!」</p><div class="nest-proposal-actions"><button type="button" class="nest-btn">駁回</button><button type="button" class="nest-btn nest-btn-primary">批准 · 選頻率</button></div></article></div></div></section></div><div class="label">② 拉開後</div><div class="room"><section class="nest-drawer is-open"><button type="button" class="nest-drawer-handle"><span class="nest-drawer-plate"><span class="nest-drawer-plate-name">現況登記</span><span class="nest-drawer-plate-count">15</span></span><span class="nest-drawer-groove"></span><svg class="nest-drawer-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></button><div class="nest-drawer-body"><div class="nest-drawer-inner"><div class="nest-state-list"><div class="nest-state-row"><div class="nest-state-bar nest-auth-owner"></div><div class="nest-state-body"><div class="nest-state-name">作息</div><div class="nest-state-value">下午班時段中,凌晨 3-4 點是正常作息</div><div class="nest-state-meta">糯糯陳述 · 新鮮 · 8/23</div></div></div><div class="nest-state-row"><div class="nest-state-bar nest-auth-assistant"></div><div class="nest-state-body"><div class="nest-state-name">聊天前端</div><div class="nest-state-value">chatnest-next(PWA)為主要聊天前端</div><div class="nest-state-meta">牧牧記錄 · 稍舊 · 8/18</div></div></div></div></div></div></section><section class="nest-drawer is-open"><button type="button" class="nest-drawer-handle"><span class="nest-drawer-plate"><span class="nest-drawer-plate-name">最近事件</span><span class="nest-drawer-plate-count">20</span></span><span class="nest-drawer-groove"></span><svg class="nest-drawer-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></button><div class="nest-drawer-body"><div class="nest-drawer-inner"><div class="nest-events"><div class="nest-event nest-impact-high"><div class="nest-event-body"><div class="nest-event-line">檔案室改版規劃 v2 蓋章,檔案櫃抽屜方向定案</div><div class="nest-event-meta">檔案室進度 · high · 糯糯決定 · 8/25</div></div></div><div class="nest-event nest-impact-medium"><div class="nest-event-body"><div class="nest-event-line">大學選課:共同語文選英文+閱讀與寫作</div><div class="nest-event-meta">日常 · medium · 糯糯陳述 · 8/24</div></div></div><div class="nest-event nest-impact-low"><div class="nest-event-body"><div class="nest-event-line">審核了三封漂流瓶,全部 befriend</div><div class="nest-event-meta">花園 · low · 牧牧記錄 · 8/23</div></div></div></div></div></div></section><section class="nest-drawer is-open"><span class="nest-drawer-tab is-out">2 待審</span><button type="button" class="nest-drawer-handle"><span class="nest-drawer-plate"><span class="nest-drawer-plate-name">待審提案</span><span class="nest-drawer-plate-count">2</span></span><span class="nest-drawer-groove"></span><svg class="nest-drawer-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></button><div class="nest-drawer-body"><div class="nest-drawer-inner"><article class="nest-proposal"><div class="nest-proposal-tag">書記官提議新增主題</div><div class="nest-proposal-name">選課</div><code class="nest-proposal-code">owner.course_selection</code><p class="nest-proposal-reason">近期多次出現選課討論,建議獨立追蹤。</p><p class="nest-proposal-quote">「共同語文我要選英文跟閱讀與寫作!」</p><div class="nest-proposal-actions"><button type="button" class="nest-btn">駁回</button><button type="button" class="nest-btn nest-btn-primary">批准 · 選頻率</button></div></article></div></div></section></div></body></html>
