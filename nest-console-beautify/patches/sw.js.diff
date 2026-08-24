@@ -1,0 +1,8 @@
+--- public/sw.js.bak-ticket-1787597453	2026-08-25 02:21:40.284920879 +0800
++++ public/sw.js	2026-08-25 02:51:31.194287071 +0800
+@@ -1,4 +1,4 @@
+-const SHELL_CACHE = "chatnest-next-shell-v147";
++const SHELL_CACHE = "chatnest-next-shell-v148";
+ const SHELL = ["/", "/manifest.webmanifest", "/brand/icon-192.png", "/brand/icon-512.png", "/brand/splash-art.webp"];
+
+ self.addEventListener("install", (event) => {

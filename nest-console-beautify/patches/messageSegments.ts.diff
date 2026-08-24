@@ -1,0 +1,17 @@
+--- src/messageSegments.ts.bak-ticket-1787597453	2026-08-03 06:53:37.183968222 +0800
++++ src/messageSegments.ts	2026-08-25 02:56:01.946544644 +0800
+@@ -31,6 +31,14 @@
+       return block.items.reduce((total, item) => total + inlineLength(item), 0);
+     case "blockquote":
+       return block.children.reduce((total, child) => total + blockLength(child), 0);
++    case "table":
++      return (
++        block.header.reduce((total, cell) => total + inlineLength(cell), 0) +
++        block.rows.reduce(
++          (total, row) => total + row.reduce((rowTotal, cell) => rowTotal + inlineLength(cell), 0),
++          0,
++        )
++      );
+   }
+ }
+
