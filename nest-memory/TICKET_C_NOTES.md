@@ -50,3 +50,16 @@ main 的外層 except 把**整批**標 failed。三晚兩炸(batch 14、16),同�
 - `/srv/nest-memory/bin/extractor.py.bak-ticketc-*`
 - `/srv/nest-memory/bin/golden_runner.py.bak-ticketc-*`
 - repo 追蹤副本已同步(md5 與 VPS 一致)
+
+---
+
+## 複驗補件(2026-08-25,規劃窗要求)
+
+**問題**:GS-26/27 沒登記進 golden_cases 表(表 9 筆、runs 報 11)—— 與 P4 的 GS-24/25 同種漏,第二次。
+
+**治本**:golden_runner 的 main() 在寫 golden_runs 前,把**本次實際跑到的所有案例**
+自動 upsert 入 golden_cases(`ON CONFLICT(case_id) DO UPDATE`,保留原 created_at)。
+「寫案例」與「登記」從此是同一件事:新案例只要有跑,必然在表裡,此類缺失永久消失。
+CASES 清單的案例登記真實 expectation;函數內案例(projection/serving/parser)登記 in_code 佔位。
+
+**驗證**:重跑 golden 11/0,golden_cases 表 9 → 11 筆,GS-26/27 入表,舊 9 筆 created_at 未變。

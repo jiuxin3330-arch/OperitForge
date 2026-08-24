@@ -292,9 +292,22 @@ def main() -> int:
 
     wdb = sqlite3.connect(DB, timeout=15)
     with wdb:
+        # 治本(TICKET-C 複驗要求):實際跑到的案例自動 upsert 入 golden_cases,
+        # 「寫案例」與「登記」是同一件事,新案例只要有跑就必然在表裡。
+        expect_by_id = {cid: exp for cid, _t, _f, exp in CASES}
+        now = datetime.now(TZ).isoformat(timespec="seconds")
+        for cid, r in results.items():
+            wdb.execute(
+                """INSERT INTO golden_cases(case_id, title, fixture_json, expectation_json, created_at)
+                   VALUES(?,?,?,?,?)
+                   ON CONFLICT(case_id) DO UPDATE SET
+                       title=excluded.title, expectation_json=excluded.expectation_json""",
+                (cid, r["title"], json.dumps({"in_code": "golden_runner.py"}),
+                 json.dumps(expect_by_id.get(cid, {"in_code": "golden_runner.py"}), ensure_ascii=False),
+                 now))
         wdb.execute(
             "INSERT INTO golden_runs(ts, extractor_version, model, passed, failed, details_json) VALUES(?,?,?,?,?,?)",
-            (datetime.now(TZ).isoformat(timespec="seconds"), extractor.EXTRACTOR_VERSION,
+            (now, extractor.EXTRACTOR_VERSION,
              extractor.MODEL, passed, failed, json.dumps(results, ensure_ascii=False)))
     wdb.close()
     print(f"golden: {passed} passed / {failed} failed")
