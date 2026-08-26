@@ -1,0 +1,241 @@
+
+/* ==== 檔案櫃抽屜(S1+S2 打樣定稿版)=====================================
+   平面擬物:零漸層零立體零框線,色塊深淺分層;新擬態只給按鈕。
+   結構:溢出紙堆裝飾(.nest-deco,面板後)+紅緞帶(.nest-drawer-tab)+
+   把手(標題貼+箭頭+拉手槽)+內容區(grid 0fr/1fr)。
+   內容元件(nest-state-list / nest-events / nest-proposal)只是被抽屜包住。 */
+.nest-drawer {
+  position: relative;
+}
+.nest-drawer-handle {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 17px 18px 13px;
+  background: var(--nest-drawer-face);
+  border: 0;
+  border-radius: 18px;
+  color: var(--nest-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+.nest-drawer.is-open > .nest-drawer-handle {
+  background: var(--nest-drawer-face-open);
+  animation: nest-drawer-press 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes nest-drawer-press {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.985); }
+  100% { transform: scale(1); }
+}
+.nest-drawer-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+}
+.nest-drawer-sp { flex: 1; }
+.nest-drawer-arrow {
+  flex: 0 0 18px;
+  color: var(--nest-muted);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.nest-drawer.is-open .nest-drawer-arrow { transform: rotate(180deg); }
+/* 拉手:內嵌拉手槽(淺槽+深縫,兩層平面色塊) */
+.nest-drawer-pull {
+  position: relative;
+  width: 40%;
+  height: 11px;
+  margin: 0 auto;
+  border-radius: 6px;
+  background: var(--nest-pull-slot);
+}
+.nest-drawer-pull::after {
+  content: '';
+  position: absolute;
+  left: 14%; right: 14%; top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 2px;
+  background: var(--nest-pull-slit);
+}
+.nest-drawer-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.nest-drawer.is-open > .nest-drawer-body { grid-template-rows: 1fr; }
+.nest-drawer-inner {
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  padding: 0 2px;
+}
+.nest-drawer-inner > :first-child { margin-top: 14px; }
+.nest-drawer-inner > .nest-proposal { margin-top: 14px; }
+.nest-drawer-inner > .nest-empty { margin-top: 4px; }
+
+/* 標題貼:A貼紙(現況)/B掛牌(事件)/C紙膠帶(待審),全暖色階 */
+.nest-drawer-plate {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 9px;
+  color: var(--nest-ink-on-cream);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 13.5px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.nest-plate-count { font-size: 11px; opacity: 0.66; }
+.nest-plate-sticker {
+  padding: 8px 15px;
+  border-radius: 9px;
+  background: var(--nest-archive-cream);
+  transform: rotate(-1.6deg);
+  clip-path: polygon(0 0, 100% 0, 100% 62%, 88% 100%, 0 100%);
+}
+.nest-plate-hangtag {
+  position: relative;
+  padding: 8px 15px 8px 24px;
+  border-radius: 6px 10px 10px 6px;
+  background: var(--nest-archive-tan);
+}
+.nest-plate-hangtag::before {
+  content: '';
+  position: absolute;
+  left: 9px; top: 50%;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--nest-drawer-face);
+  transform: translateY(-50%);
+  transition: background 0.25s ease;
+}
+.nest-drawer.is-open .nest-plate-hangtag::before { background: var(--nest-drawer-face-open); }
+.nest-plate-tape {
+  padding: 8px 20px;
+  background: color-mix(in srgb, var(--nest-archive-gold) 74%, transparent);
+  transform: rotate(-1.2deg);
+  clip-path: polygon(5% 0, 95% 0, 100% 20%, 94% 40%, 100% 60%, 94% 80%, 97% 100%, 3% 100%, 0 80%, 6% 60%, 0 40%, 6% 20%);
+}
+.nest-plate-tape.empty {
+  background: color-mix(in srgb, var(--nest-archive-gold) 26%, transparent);
+  color: var(--nest-muted);
+}
+
+/* 待審紅緞帶:從抽屜內向上凸出,頂端燕尾朝上,只顯數字;歸零滑回抽屜裡 */
+.nest-drawer-tab {
+  position: absolute;
+  top: 12px; right: 24px;
+  z-index: 0;
+  transform: translateY(-100%);
+  width: 24px; height: 42px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 7px;
+  background: var(--nest-danger);
+  color: #fff6ef;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  clip-path: polygon(0 0, 50% 22%, 100% 0, 100% 100%, 0 100%);
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease 0.18s;
+  pointer-events: none;
+}
+.nest-drawer-tab.retracted {
+  transform: translateY(0);
+  opacity: 0;
+}
+
+/* 溢出紙堆裝飾:矮基底連綿層+少數高片,全暖色,向外歪斜;
+   開櫃=同時向上向外散開(基底小動/高片大動),收回快 */
+.nest-deco {
+  position: absolute;
+  z-index: 0;
+  top: 2px;
+  border-radius: 3px;
+  transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.nest-drawer:not(.is-open) .nest-deco { transition-duration: 0.22s; }
+.nest-deco-note::before {
+  content: '';
+  position: absolute;
+  top: 6px; bottom: 4px; left: 5px; right: 5px;
+  background-image: repeating-linear-gradient(to bottom, var(--nest-line-soft) 0 1px, transparent 1px 7px);
+}
+.nest-deco-bill {
+  clip-path: polygon(0 0, 100% 0, 100% 90%, 84% 100%, 66% 90%, 50% 100%, 34% 90%, 16% 100%, 0 90%);
+}
+.nest-deco-bill::before {
+  content: '';
+  position: absolute;
+  top: 22%; left: 4px; right: 4px;
+  border-top: 1px dashed var(--nest-line-soft);
+}
+.nest-deco-bill::after {
+  content: '';
+  position: absolute;
+  top: 52%; left: 4px; right: 4px;
+  border-top: 1px dashed var(--nest-line-soft);
+}
+.nest-deco-clip::before {
+  content: '';
+  position: absolute;
+  top: 3px; left: 50%;
+  transform: translateX(-50%);
+  width: 14px; height: 8px;
+  border-radius: 3px;
+  background-color: var(--nest-clip-metal);
+}
+/* 現況登記:左密(夾板高片)右疏(帳單) */
+.nest-deco.a0 { left:4%; width:46px; height:30px; background-color:var(--nest-paper-cream); transform: translate(0,-23%) rotate(-3deg); }
+.nest-drawer.is-open .nest-deco.a0 { transform: translate(-8px,-43%) rotate(-6deg); }
+.nest-deco.a1 { left:14%; width:38px; height:34px; background-color:var(--nest-paper-white); transform: translate(0,-32%) rotate(-2deg); }
+.nest-drawer.is-open .nest-deco.a1 { transform: translate(-6px,-53%) rotate(-5deg); }
+.nest-deco.aH { left:9%; width:32px; height:56px; background-color:var(--nest-paper-manila); transform: translate(0,-36%) rotate(-7deg); }
+.nest-drawer.is-open .nest-deco.aH { transform: translate(-12px,-52%) rotate(-11deg); }
+.nest-deco.a2 { left:25%; width:50px; height:28px; background-color:var(--nest-paper-cream); transform: translate(0,-29%) rotate(-4deg); }
+.nest-drawer.is-open .nest-deco.a2 { transform: translate(-4px,-50%) rotate(-7deg); }
+.nest-deco.a3 { left:39%; width:30px; height:30px; background-color:var(--nest-paper-white); transform: translate(0,-37%) rotate(-2deg); }
+.nest-drawer.is-open .nest-deco.a3 { transform: translate(-2px,-57%) rotate(-4deg); }
+.nest-deco.a4 { right:19%; width:28px; height:26px; background-color:var(--nest-paper-cream); transform: translate(0,-23%) rotate(4deg); }
+.nest-drawer.is-open .nest-deco.a4 { transform: translate(7px,-42%) rotate(7deg); }
+.nest-deco.aB { right:9%; width:22px; height:48px; background-color:var(--nest-paper-bill); transform: translate(0,-38%) rotate(5deg); }
+.nest-drawer.is-open .nest-deco.aB { transform: translate(11px,-54%) rotate(9deg); }
+.nest-deco.a5 { right:3%; width:34px; height:28px; background-color:var(--nest-paper-white); transform: translate(0,-29%) rotate(6deg); }
+.nest-drawer.is-open .nest-deco.a5 { transform: translate(13px,-50%) rotate(10deg); }
+/* 最近事件:左主角筆記紙,右密 */
+.nest-deco.bH { left:6%; width:44px; height:58px; background-color:var(--nest-paper-note); transform: translate(0,-38%) rotate(-8deg); }
+.nest-drawer.is-open .nest-deco.bH { transform: translate(-13px,-53%) rotate(-13deg); }
+.nest-deco.b0 { left:19%; width:34px; height:30px; background-color:var(--nest-paper-cream); transform: translate(0,-27%) rotate(-3deg); }
+.nest-drawer.is-open .nest-deco.b0 { transform: translate(-7px,-47%) rotate(-6deg); }
+.nest-deco.b1 { left:44%; width:42px; height:28px; background-color:var(--nest-paper-white); transform: translate(0,-25%) rotate(-2deg); }
+.nest-drawer.is-open .nest-deco.b1 { transform: translate(-2px,-43%) rotate(-4deg); }
+.nest-deco.b2 { left:56%; width:36px; height:32px; background-color:var(--nest-paper-cream); transform: translate(0,-31%) rotate(3deg); }
+.nest-drawer.is-open .nest-deco.b2 { transform: translate(4px,-50%) rotate(6deg); }
+.nest-deco.b3 { right:15%; width:30px; height:28px; background-color:var(--nest-paper-goldsoft); transform: translate(0,-25%) rotate(5deg); }
+.nest-drawer.is-open .nest-deco.b3 { transform: translate(9px,-43%) rotate(8deg); }
+.nest-deco.bB { right:5%; width:20px; height:44px; background-color:var(--nest-paper-bill); transform: translate(0,-36%) rotate(7deg); }
+.nest-drawer.is-open .nest-deco.bB { transform: translate(13px,-55%) rotate(11deg); }
+/* 待審:左中密,右上讓給紅緞帶 */
+.nest-deco.c0 { left:5%; width:40px; height:28px; background-color:var(--nest-paper-cream); transform: translate(0,-29%) rotate(-4deg); }
+.nest-drawer.is-open .nest-deco.c0 { transform: translate(-10px,-50%) rotate(-8deg); }
+.nest-deco.cH { left:15%; width:28px; height:44px; background-color:var(--nest-paper-note); transform: translate(0,-36%) rotate(-6deg); }
+.nest-drawer.is-open .nest-deco.cH { transform: translate(-7px,-52%) rotate(-10deg); }
+.nest-deco.c1 { left:33%; width:44px; height:26px; background-color:var(--nest-paper-white); transform: translate(0,-27%) rotate(-2deg); }
+.nest-drawer.is-open .nest-deco.c1 { transform: translate(-3px,-46%) rotate(-4deg); }
+.nest-deco.c2 { left:51%; width:30px; height:30px; background-color:var(--nest-paper-cream); transform: translate(0,-33%) rotate(3deg); }
+.nest-drawer.is-open .nest-deco.c2 { transform: translate(5px,-53%) rotate(6deg); }
+.nest-deco.c3 { left:64%; width:20px; height:40px; background-color:var(--nest-paper-bill); transform: translate(0,-35%) rotate(6deg); }
+.nest-drawer.is-open .nest-deco.c3 { transform: translate(10px,-50%) rotate(9deg); }
+
+html[data-reduced-motion="true"] .nest-drawer-handle,
+html[data-reduced-motion="true"] .nest-drawer-body,
+html[data-reduced-motion="true"] .nest-drawer-arrow,
+html[data-reduced-motion="true"] .nest-drawer-tab,
+html[data-reduced-motion="true"] .nest-deco { transition: none !important; animation: none !important; }
