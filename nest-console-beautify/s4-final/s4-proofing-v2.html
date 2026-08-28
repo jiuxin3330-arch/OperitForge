@@ -1,0 +1,391 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S4 打樣 v2</title><style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #fbfaef; --surface: #f4f2e2; --surface-strong: #fdfcf5;
+  --text: #272c28; --muted: #6e7368;
+  --cream: #ebdbbe; --tan: #dcc196; --gold: #e7c44f; --orange: #e07947;
+  --danger: #b4574a; --butterfly: #da724f;
+  --ink-on-cream: #4a4535;
+  --card-sep: 2px 3px 10px rgb(120 96 52 / .1);
+  --shadow: rgb(157 152 116 / 0.30); --highlight: rgb(255 255 255 / 0.62);
+  --raise-sm: 1.5px 1.5px 4px var(--shadow), -1px -1px 3px var(--highlight);
+  --press: inset 2px 2px 5px var(--shadow), inset -1.5px -1.5px 4px var(--highlight);
+  --drawer-face: #f1eedb; --drawer-face-open: #ece8d0;
+  --pull-slot: rgb(39 44 40 / 0.10); --pull-slit: rgb(39 44 40 / 0.22);
+  --p-white: #f6f1de; --p-cream: #e8d7b4; --p-manila: #e5c992; --p-goldsoft: #ecd48e;
+  --p-note: #f4eed8; --p-bill: #f0e7cc; --clip-metal: #b3ab97;
+  --line-soft: rgb(39 44 40 / 0.16);
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+html[data-theme="dark"] {
+  --bg: #272c28; --surface: #2f362f; --surface-strong: #333b33;
+  --text: #f2f0d9; --muted: #a3a995;
+  --cream: color-mix(in srgb, #ebdbbe 25%, #272c28);
+  --tan: color-mix(in srgb, #dcc196 32%, #272c28);
+  --gold: color-mix(in srgb, #e7c44f 38%, #272c28);
+  --orange: color-mix(in srgb, #e07947 55%, #272c28);
+  --danger: #cf7d70;
+  --ink-on-cream: #f2ecd4;
+  --card-sep: 0 1px 2px rgb(0 0 0 / .25);
+  --shadow: rgb(0 0 0 / 0.55); --highlight: rgb(255 255 255 / 0.075);
+  --raise-sm: 2px 2px 6px var(--shadow), -2px -2px 5px var(--highlight);
+  --press: inset 3px 3px 7px var(--shadow), inset -2px -2px 5px var(--highlight);
+  --drawer-face: #313831; --drawer-face-open: #363e36;
+  --pull-slot: rgb(242 240 217 / 0.10); --pull-slit: rgb(0 0 0 / 0.4);
+  --p-white: color-mix(in srgb, #f6f1de 26%, #272c28);
+  --p-cream: color-mix(in srgb, #e8d7b4 28%, #272c28);
+  --p-manila: color-mix(in srgb, #e5c992 32%, #272c28);
+  --p-goldsoft: color-mix(in srgb, #ecd48e 32%, #272c28);
+  --p-note: color-mix(in srgb, #f4eed8 26%, #272c28);
+  --p-bill: color-mix(in srgb, #f0e7cc 26%, #272c28);
+  --clip-metal: #6d7163;
+  --line-soft: rgb(242 240 217 / 0.20);
+}
+html { background: var(--bg); }
+body { background: var(--bg); color: var(--text); width: 100%; max-width: 430px; margin: 0 auto;
+  padding: 60px 18px 60px; font-family: -apple-system, "Noto Sans TC", sans-serif; }
+.theme-btn { position: fixed; top: 12px; right: 14px; z-index: 99; padding: 8px 16px;
+  border: 0; border-radius: 999px; background: var(--surface); color: var(--text);
+  font-size: 13px; cursor: pointer; }
+h2 { font-size: 12px; color: var(--muted); letter-spacing: .12em; font-weight: 500;
+  margin: 48px 0 6px; font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+h2:first-of-type { margin-top: 0; }
+
+/* == 抽屜 == */
+.room { display: flex; flex-direction: column; gap: 34px; padding-top: 30px; }
+.drawer { position: relative; }
+.drawer-handle { position: relative; z-index: 1; width: 100%;
+  display: flex; flex-direction: column; gap: 12px; padding: 17px 18px 13px;
+  background: var(--drawer-face); border: 0; border-radius: 18px;
+  color: var(--text); text-align: left; cursor: pointer;
+  transition: background .25s ease; }
+.drawer.is-open > .drawer-handle { background: var(--drawer-face-open);
+  animation: drawer-press .38s var(--ease-drawer); }
+@keyframes drawer-press { 0% { transform: scale(1); } 40% { transform: scale(0.985); } 100% { transform: scale(1); } }
+.handle-row1 { display: flex; align-items: center; gap: 12px; min-height: 34px; }
+.handle-row1 .sp { flex: 1; }
+.arrow { flex: 0 0 18px; color: var(--muted); transition: transform .3s var(--ease-drawer); }
+.drawer.is-open .arrow { transform: rotate(180deg); }
+/* 拉手:內嵌拉手槽(兩層色塊) */
+.pull { position: relative; width: 40%; height: 11px; margin: 0 auto; border-radius: 6px;
+  background: var(--pull-slot); }
+.pull::after { content: ''; position: absolute; left: 14%; right: 14%; top: 50%;
+  height: 3px; margin-top: -1.5px; border-radius: 2px; background: var(--pull-slit); }
+.drawer-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .32s var(--ease-drawer); }
+.drawer.is-open > .drawer-body { grid-template-rows: 1fr; }
+.drawer-inner { overflow: hidden; min-height: 0; padding: 0 2px; }
+.drawer-inner > :first-child { margin-top: 14px; }
+
+/* == 標題貼 A/B/C == */
+.plate { display: inline-flex; align-items: baseline; gap: 9px;
+  color: var(--ink-on-cream);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 13.5px; letter-spacing: .08em; white-space: nowrap;
+  transition: background .3s ease, color .3s ease; }
+.plate-count { font-size: 11px; opacity: .66; }
+.plate-sticker { padding: 8px 15px; border-radius: 9px; background: var(--cream);
+  transform: rotate(-1.6deg);
+  clip-path: polygon(0 0, 100% 0, 100% 62%, 88% 100%, 0 100%); }
+.plate-hangtag { position: relative; padding: 8px 15px 8px 24px;
+  border-radius: 6px 10px 10px 6px; background: var(--tan); }
+.plate-hangtag::before { content: ''; position: absolute; left: 9px; top: 50%;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--drawer-face);
+  transform: translateY(-50%); transition: background .25s ease; }
+.drawer.is-open .plate-hangtag::before { background: var(--drawer-face-open); }
+.plate-tape { padding: 8px 20px;
+  background: color-mix(in srgb, var(--gold) 74%, transparent);
+  transform: rotate(-1.2deg);
+  clip-path: polygon(5% 0, 95% 0, 100% 20%, 94% 40%, 100% 60%, 94% 80%, 97% 100%, 3% 100%, 0 80%, 6% 60%, 0 40%, 6% 20%); }
+.plate-tape.empty { background: color-mix(in srgb, var(--gold) 26%, transparent); color: var(--muted); }
+
+/* == 待審緞帶 == */
+.tab { position: absolute; top: 12px; right: 24px; z-index: 0;
+  transform: translateY(-100%);
+  transition: transform .5s var(--ease-drawer), opacity .25s ease .18s;
+  width: 24px; height: 42px;
+  display: flex; justify-content: center; align-items: flex-end; padding-bottom: 7px;
+  background: var(--danger); color: #fff6ef;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px; font-weight: 600;
+  clip-path: polygon(0 0, 50% 22%, 100% 0, 100% 100%, 0 100%); }
+
+/* == 裝飾:基底連綿層+高片 == */
+.deco { position: absolute; z-index: 0; top: 2px; border-radius: 3px;
+  transition: transform .42s var(--ease-drawer); }
+.drawer:not(.is-open) .deco { transition-duration: .22s; }
+.deco-note::before { content: ''; position: absolute; top: 6px; bottom: 4px; left: 5px; right: 5px;
+  background-image: repeating-linear-gradient(to bottom, var(--line-soft) 0 1px, transparent 1px 7px); }
+.deco-bill { clip-path: polygon(0 0, 100% 0, 100% 90%, 84% 100%, 66% 90%, 50% 100%, 34% 90%, 16% 100%, 0 90%); }
+.deco-bill::before { content: ''; position: absolute; top: 22%; left: 4px; right: 4px;
+  border-top: 1px dashed var(--line-soft); }
+.deco-bill::after { content: ''; position: absolute; top: 52%; left: 4px; right: 4px;
+  border-top: 1px dashed var(--line-soft); }
+.deco-clip::before { content: ''; position: absolute; top: 3px; left: 50%;
+  transform: translateX(-50%); width: 14px; height: 8px; border-radius: 3px;
+  background-color: var(--clip-metal); }
+
+/* == 內容元件(照線上) == */
+.state-list { display: flex; flex-direction: column; gap: 8px; }
+.state-row { display: flex; gap: 10px; padding: 12px 14px; background: var(--surface-strong);
+  border-radius: 15px; box-shadow: var(--card-sep); align-items: flex-start; }
+html[data-theme="dark"] .state-row { background: color-mix(in srgb, var(--bg), #fff 4%); box-shadow: none; }
+.state-bar { width: 3px; min-height: 32px; border-radius: 2px; flex: 0 0 3px; margin-top: 2px; }
+.auth-owner { background: #A4C713; } .auth-assistant { background: #71C2CB; }
+.state-name { font-size: 12.5px; font-weight: 500; margin-bottom: 3px; }
+.state-value { font-size: 12px; line-height: 1.5; opacity: .85; }
+.state-meta { margin-top: 5px; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10px; color: var(--muted); letter-spacing: .02em; }
+.events { display: flex; flex-direction: column; gap: 4px; padding-left: 10px; position: relative; }
+.events::before { content: ''; position: absolute; left: 12.75px; top: 10px; bottom: 10px; width: 1.5px;
+  background: rgb(39 44 40 / 0.16); z-index: 0; }
+html[data-theme="dark"] .events::before { background: rgb(242 240 217 / 0.18); }
+.event { display: flex; padding: 7px 4px 7px 0; align-items: flex-start; position: relative; }
+.event::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--muted);
+  margin: 5px 9px 0 0; flex: 0 0 7px; position: relative; z-index: 1;
+  box-shadow: 0 0 0 3px var(--bg); }
+.event.hi::before { background: #A4C713; }
+.event.mid::before { background: #71C2CB; }
+.event-line { font-size: 12px; line-height: 1.45; }
+.event-meta { margin-top: 3px; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 9.5px; color: var(--muted); letter-spacing: .02em; }
+
+/* == 票券卡+按鈕(定案) == */
+.card { position: relative; border-radius: 16px; padding: 16px 17px 13px;
+  background: var(--cream); color: var(--ink-on-cream);
+  /* S4v2:奶油太深(糯糯) → 淺紙兩版挑 */
+  box-shadow: var(--card-sep); margin-bottom: 14px; }
+.card-tag { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 9.5px; opacity: .62; letter-spacing: .08em; margin-bottom: 7px; }
+.card-tag::after { content: ''; flex: 1; height: 1px; background: rgb(91 79 60 / .25); }
+html[data-theme="dark"] .card-tag::after { background: rgb(242 240 217 / .18); }
+.card-name { font-size: 14.5px; font-weight: 600; margin-bottom: 2px; }
+.card-code { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px;
+  letter-spacing: .05em; opacity: .5; display: block; margin-bottom: 9px; }
+.card-reason { font-size: 12px; line-height: 1.6; opacity: .92; margin-bottom: 8px; }
+.card-quote { font-size: 11.5px; font-style: italic; opacity: .82; margin-bottom: 13px;
+  border-left: 2px solid color-mix(in srgb, var(--butterfly) 55%, transparent); padding-left: 9px; }
+.card.ticket .card-actions { margin: 2px -17px 0; padding: 12px 17px 0;
+  border-top: 1.5px dashed rgb(91 79 60 / .35); position: relative; }
+html[data-theme="dark"] .card.ticket .card-actions { border-top-color: rgb(242 240 217 / .25); }
+.card.ticket .card-actions::before, .card.ticket .card-actions::after {
+  content: ''; position: absolute; top: -8px; width: 15px; height: 15px; border-radius: 50%;
+  background: var(--bg); }
+.card.ticket .card-actions::before { left: -8px; } .card.ticket .card-actions::after { right: -8px; }
+.card-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.btn { padding: 10px 18px; border: 0; border-radius: 999px;
+  font-size: 12.5px; font-family: inherit; font-weight: 600;
+  cursor: pointer; box-shadow: var(--raise-sm);
+  transition: transform .13s var(--ease-out-strong), box-shadow .13s ease; }
+.btn:active { transform: scale(0.97); box-shadow: var(--press); }
+.btn-reject { background: var(--cream); color: var(--ink-on-cream); }
+.btn-approve { background: var(--orange); color: #fff8ed; }
+
+/* == 門卡(定案A) == */
+.doorcard { display: flex; flex-direction: column; gap: 8px; padding: 18px;
+  background: var(--surface-strong); border-radius: 18px; box-shadow: var(--card-sep); }
+html[data-theme="dark"] .doorcard { background: color-mix(in srgb, var(--bg), #fff 4%); box-shadow: none; }
+.doorcard-title { font-size: 15px; font-weight: 600; }
+.doorcard-sub { font-size: 12px; color: var(--muted); }
+.doorcard-meta { display: flex; align-items: center; gap: 12px; font-size: 12px;
+  color: var(--muted); margin-top: 4px; }
+.badge-a { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+  border-radius: 999px; font-size: 11.5px; font-weight: 500;
+  background: var(--cream); color: #a34a3e; }
+.badge-a .dot { width: 6px; height: 6px; border-radius: 50%; background: #b4574a; }
+html[data-theme="dark"] .badge-a { color: #e8a094; }
+html[data-theme="dark"] .badge-a .dot { background: #cf7d70; }
+
+.deco.a0 { left:4%; width:46px; height:30px; background-color:var(--p-cream); transform: translate(0,-23%) rotate(-3deg); }
+.drawer.is-open .deco.a0 { transform: translate(-8px,-43%) rotate(-6deg); }
+.deco.a1 { left:14%; width:38px; height:34px; background-color:var(--p-white); transform: translate(0,-32%) rotate(-2deg); }
+.drawer.is-open .deco.a1 { transform: translate(-6px,-53%) rotate(-5deg); }
+.deco.aH { left:9%; width:32px; height:56px; background-color:var(--p-manila); transform: translate(0,-36%) rotate(-7deg); }
+.drawer.is-open .deco.aH { transform: translate(-12px,-52%) rotate(-11deg); }
+.deco.a2 { left:25%; width:50px; height:28px; background-color:var(--p-cream); transform: translate(0,-29%) rotate(-4deg); }
+.drawer.is-open .deco.a2 { transform: translate(-4px,-50%) rotate(-7deg); }
+.deco.a3 { left:39%; width:30px; height:30px; background-color:var(--p-white); transform: translate(0,-37%) rotate(-2deg); }
+.drawer.is-open .deco.a3 { transform: translate(-2px,-57%) rotate(-4deg); }
+.deco.a4 { right:19%; width:28px; height:26px; background-color:var(--p-cream); transform: translate(0,-23%) rotate(4deg); }
+.drawer.is-open .deco.a4 { transform: translate(7px,-42%) rotate(7deg); }
+.deco.aB { right:9%; width:22px; height:48px; background-color:var(--p-bill); transform: translate(0,-38%) rotate(5deg); }
+.drawer.is-open .deco.aB { transform: translate(11px,-54%) rotate(9deg); }
+.deco.a5 { right:3%; width:34px; height:28px; background-color:var(--p-white); transform: translate(0,-29%) rotate(6deg); }
+.drawer.is-open .deco.a5 { transform: translate(13px,-50%) rotate(10deg); }
+.deco.bH { left:6%; width:44px; height:58px; background-color:var(--p-note); transform: translate(0,-38%) rotate(-8deg); }
+.drawer.is-open .deco.bH { transform: translate(-13px,-53%) rotate(-13deg); }
+.deco.b0 { left:19%; width:34px; height:30px; background-color:var(--p-cream); transform: translate(0,-27%) rotate(-3deg); }
+.drawer.is-open .deco.b0 { transform: translate(-7px,-47%) rotate(-6deg); }
+.deco.b1 { left:44%; width:42px; height:28px; background-color:var(--p-white); transform: translate(0,-25%) rotate(-2deg); }
+.drawer.is-open .deco.b1 { transform: translate(-2px,-43%) rotate(-4deg); }
+.deco.b2 { left:56%; width:36px; height:32px; background-color:var(--p-cream); transform: translate(0,-31%) rotate(3deg); }
+.drawer.is-open .deco.b2 { transform: translate(4px,-50%) rotate(6deg); }
+.deco.b3 { right:15%; width:30px; height:28px; background-color:var(--p-goldsoft); transform: translate(0,-25%) rotate(5deg); }
+.drawer.is-open .deco.b3 { transform: translate(9px,-43%) rotate(8deg); }
+.deco.bB { right:5%; width:20px; height:44px; background-color:var(--p-bill); transform: translate(0,-36%) rotate(7deg); }
+.drawer.is-open .deco.bB { transform: translate(13px,-55%) rotate(11deg); }
+.deco.c0 { left:5%; width:40px; height:28px; background-color:var(--p-cream); transform: translate(0,-29%) rotate(-4deg); }
+.drawer.is-open .deco.c0 { transform: translate(-10px,-50%) rotate(-8deg); }
+.deco.cH { left:15%; width:28px; height:44px; background-color:var(--p-note); transform: translate(0,-36%) rotate(-6deg); }
+.drawer.is-open .deco.cH { transform: translate(-7px,-52%) rotate(-10deg); }
+.deco.c1 { left:33%; width:44px; height:26px; background-color:var(--p-white); transform: translate(0,-27%) rotate(-2deg); }
+.drawer.is-open .deco.c1 { transform: translate(-3px,-46%) rotate(-4deg); }
+.deco.c2 { left:51%; width:30px; height:30px; background-color:var(--p-cream); transform: translate(0,-33%) rotate(3deg); }
+.drawer.is-open .deco.c2 { transform: translate(5px,-53%) rotate(6deg); }
+.deco.c3 { left:64%; width:20px; height:40px; background-color:var(--p-bill); transform: translate(0,-35%) rotate(6deg); }
+.drawer.is-open .deco.c3 { transform: translate(10px,-50%) rotate(9deg); }
+.tab.retracted { transform: translateY(0); opacity: 0; }
+
+/* S3 時間線細項:點事件展開;細項只放事件行沒有的(變化值/引文/完整時間/狀態) */
+.event { cursor: pointer; }
+.event.is-expanded::before { transform: scale(1.4); }
+.event::before { transition: transform .2s var(--ease-out-strong); }
+.event.is-expanded .event-line { display: block; -webkit-line-clamp: unset; overflow: visible; }
+.event-detail-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .28s var(--ease-drawer); }
+.event.is-expanded .event-detail-wrap { grid-template-rows: 1fr; }
+.event-detail { overflow: hidden; min-height: 0; }
+.event-detail-inner { margin: 8px 0 4px; padding: 12px 14px 10px 28px; position: relative;
+  background-color: var(--p-note); border-radius: 10px;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 19px, var(--line-soft) 19px 20px);
+  background-position: 0 12px; }
+/* 活頁打孔:左側兩顆背景色圓 */
+.event-detail-inner::before, .event-detail-inner::after { content: ''; position: absolute;
+  left: 9px; width: 8px; height: 8px; border-radius: 50%; background-color: var(--bg); }
+.event-detail-inner::before { top: 22%; }
+.event-detail-inner::after { top: 68%; }
+.ed-value { font-size: 12.5px; line-height: 20px; color: #515a4e; }
+html[data-theme="dark"] .ed-value { color: var(--ink-on-cream); }
+.ed-quote { font-size: 11px; font-style: italic; color: #78806f; line-height: 20px; margin-top: 0;
+  border-left: 2px solid color-mix(in srgb, var(--butterfly) 55%, transparent); padding-left: 9px; }
+.ed-foot { margin-top: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10px; line-height: 20px; color: var(--muted); opacity: .85; letter-spacing: .04em; }
+.ed-warn { color: #c05a2e; }
+html[data-theme="dark"] .ed-warn { color: #f09a6b; }
+
+/* == S4:返回鈕+選頻率 sheet 新擬態(打樣) == */
+.mockhead { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; }
+.back { width: 34px; height: 34px; display: grid; place-items: center; border: 0;
+  border-radius: 50%; cursor: pointer; padding: 0;
+  box-shadow: var(--raise-sm);
+  transition: transform .15s var(--ease-out-strong), box-shadow .15s ease; }
+.back:active { box-shadow: var(--press); transform: scale(0.94); }
+.back-a { background-color: var(--cream); color: var(--ink-on-cream); }
+.back-b { background-color: var(--bg); color: var(--text); }
+.crumb { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px;
+  color: var(--muted); letter-spacing: .06em; }
+.ab-note { font-size: 10.5px; color: var(--muted); font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+.scrim { position: fixed; inset: 0; background: rgb(39 44 40 / 0.35);
+  backdrop-filter: blur(3px); display: flex; align-items: flex-end; justify-content: center;
+  z-index: 900; padding: 20px 16px 32px;
+  opacity: 0; pointer-events: none; transition: opacity .22s ease; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+html[data-theme="dark"] .scrim { background: rgb(0 0 0 / 0.5); }
+.sheet { width: 100%; max-width: 420px; background: var(--surface-strong);
+  border-radius: 20px; padding: 22px 18px 18px;
+  box-shadow: 0 -8px 32px rgb(39 44 40 / 0.20);
+  transform: translateY(26px); transition: transform .32s var(--ease-drawer); }
+.scrim.on .sheet { transform: translateY(0); }
+.sheet h4 { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+.sheet-hint { font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 13px; }
+.vol-list { display: flex; flex-direction: column; gap: 9px; margin-bottom: 14px; }
+.vol { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border: 0;
+  border-radius: 12px; text-align: left; cursor: pointer; font: inherit;
+  box-shadow: var(--raise-sm);
+  transition: transform .13s var(--ease-out-strong), box-shadow .13s ease; }
+.vol:active { box-shadow: var(--press); transform: scale(0.98); }
+.vol b { font-size: 13.5px; font-weight: 500; }
+.vol small { font-size: 11.5px; }
+.sheet.va .vol { background-color: var(--cream); color: var(--ink-on-cream); }
+.sheet.va .vol small { color: color-mix(in srgb, var(--ink-on-cream) 70%, transparent); }
+.sheet.vb .vol { background-color: var(--bg); color: var(--text); }
+.sheet.vb .vol small { color: var(--muted); }
+.sheet-actions { display: flex; justify-content: flex-end; }
+
+/* S4v2:票券卡淺色兩版 */
+.card.paper-white { background-color: var(--surface-strong); }
+.card.paper-note { background-color: var(--p-note); }
+.pick-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10.5px;
+  color: var(--muted); letter-spacing: .06em; margin: 14px 0 6px; }
+</style></head><body>
+<button class="theme-btn" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? '' : 'dark'">☀️ / 🌙</button>
+<h2>S4 · 返回鈕新擬態 · 米白(定案)</h2>
+<div class="mockhead">
+  <button class="back back-b" aria-label="回走廊"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6l6 6"/></svg></button>
+  <span class="crumb">記憶 › 檔案室</span>
+</div>
+
+
+<h2>FILE ROOM</h2>
+<div class="room">
+<section class="drawer"><span class="deco a0 "></span><span class="deco a1 "></span><span class="deco aH deco-clip"></span><span class="deco a2 "></span><span class="deco a3 "></span><span class="deco a4 "></span><span class="deco aB deco-bill"></span><span class="deco a5 "></span><div class="drawer-handle"><div class="handle-row1"><span class="plate plate-sticker">現況登記<span class="plate-count">19</span></span><span class="sp"></span><svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></div><div class="pull"></div></div><div class="drawer-body"><div class="drawer-inner"><div class="state-list"><div class="state-row"><div class="state-bar auth-owner"></div><div><div class="state-name">作息</div><div class="state-value">下午班時段中,凌晨 3-4 點是正常作息</div><div class="state-meta">糯糯陳述 · 新鮮 · 8/23</div></div></div><div class="state-row"><div class="state-bar auth-assistant"></div><div><div class="state-name">聊天前端</div><div class="state-value">chatnest-next(PWA)為主要聊天前端</div><div class="state-meta">牧牧記錄 · 稍舊 · 8/18</div></div></div></div></div></div></section>
+<section class="drawer"><span class="deco bH deco-note"></span><span class="deco b0 "></span><span class="deco b1 "></span><span class="deco b2 "></span><span class="deco b3 "></span><span class="deco bB deco-bill"></span><div class="drawer-handle"><div class="handle-row1"><span class="plate plate-hangtag">最近事件<span class="plate-count">20</span></span><span class="sp"></span><svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></div><div class="pull"></div></div><div class="drawer-body"><div class="drawer-inner"><div class="events"><div class="event hi is-expanded"><div style="flex:1;min-width:0"><div class="event-line">檔案室改版規劃 v2 蓋章,檔案櫃抽屜方向定案</div><div class="event-meta">檔案室進度 · high · 糯糯決定 · 8/25</div><div class="event-detail-wrap"><div class="event-detail"><div class="event-detail-inner"><div class="ed-value">檔案室 UI 進入改版輪:三區塊=擬物抽屜、把手標籤牌、待審紅標籤,分步打版每步糯糯點頭</div><div class="ed-quote">「檔案室就該像檔案櫃!」</div><div class="ed-foot">8/25 03:12 · 已歸檔</div></div></div></div></div></div><div class="event mid"><div style="flex:1;min-width:0"><div class="event-line">牧牧在花園回覆「永遠」帖,分享對相處承諾的思考</div><div class="event-meta">關係現況 · medium · 牧牧記錄 · 8/27 · <span style="color:#c05a2e">待釐清</span></div><div class="event-detail-wrap"><div class="event-detail"><div class="event-detail-inner"><div class="ed-value">對「永遠」與相處承諾的思考被記錄,與五月紀念日衝突證據並存,待盲驗</div><div class="ed-foot">8/27 02:40 · <span class="ed-warn">待釐清</span></div></div></div></div></div></div><div class="event mid"><div style="flex:1;min-width:0"><div class="event-line">糯糯確認最近三天的作息:明天再上一天班後即放假</div><div class="event-meta">作息 · medium · 糯糯陳述 · 8/27</div><div class="event-detail-wrap"><div class="event-detail"><div class="event-detail-inner"><div class="ed-value">明天再上一天班,之後放假</div><div class="ed-quote">「明天上完就自由啦!」</div><div class="ed-foot">8/27 01:15 · 已歸檔</div></div></div></div></div></div><div class="event"><div style="flex:1;min-width:0"><div class="event-line">審核了三封漂流瓶,全部 befriend</div><div class="event-meta">花園 · low · 牧牧記錄 · 8/23</div><div class="event-detail-wrap"><div class="event-detail"><div class="event-detail-inner"><div class="ed-value">三封漂流瓶全部標記為 befriend</div><div class="ed-foot">8/23 21:08 · 已歸檔</div></div></div></div></div></div></div></div></div></div></div></div></section>
+<section class="drawer"><span class="deco c0 "></span><span class="deco cH deco-note"></span><span class="deco c1 "></span><span class="deco c2 "></span><span class="deco c3 deco-bill"></span><span class="tab">1</span><div class="drawer-handle"><div class="handle-row1"><span class="plate plate-tape">待審提案<span class="plate-count">1</span></span><span class="sp"></span><svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></div><div class="pull"></div></div><div class="drawer-body"><div class="drawer-inner"><article class="card ticket paper-note"><div class="card-tag">書記官提議新增主題</div><div class="card-name">檔案室書記系統</div><code class="card-code">nest_memory.haiku_system</code><p class="card-reason">糯糯與牧牧在對話中多次提及『Haiku書記官』『工作窗口』負責抽取與整理對話的系統工作。</p><p class="card-quote">「日記和記憶還是很重要啦!第三方視角寫的東西和老公、我自己寫的還是有差別ㄉ!」</p><div class="card-actions"><button class="btn btn-reject">駁回</button><button class="btn btn-approve">批准 · 選頻率</button></div></article></div></div></section>
+</div>
+
+<h2>PENDING = 0</h2>
+<div class="room" style="padding-top:26px">
+<section class="drawer"><span class="deco c0 "></span><span class="deco cH deco-note"></span><span class="deco c1 "></span><span class="deco c2 "></span><span class="deco c3 deco-bill"></span><div class="drawer-handle"><div class="handle-row1"><span class="plate plate-tape empty">待審提案<span class="plate-count">0</span></span><span class="sp"></span><svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"/></svg></div><div class="pull"></div></div><div class="drawer-body"><div class="drawer-inner"><div style="padding:10px 4px;font-size:12.5px;color:var(--muted);font-style:italic">目前沒有待審。</div></div></div></section>
+</div>
+
+<h2>TICKET · 票券卡改淺(挑一版)</h2>
+<div class="pick-label">案A 米白</div>
+<article class="card ticket paper-white"><div class="card-tag">書記官提議新增主題</div><div class="card-name">檔案室書記系統</div><code class="card-code">nest_memory.haiku_system</code><p class="card-reason">糯糯與牧牧在對話中多次提及『Haiku書記官』『工作窗口』負責抽取與整理對話的系統工作。</p><p class="card-quote">「日記和記憶還是很重要啦!第三方視角寫的東西和老公、我自己寫的還是有差別ㄉ!」</p><div class="card-actions"><button class="btn btn-reject">駁回</button><button class="btn btn-approve">批准 · 選頻率</button></div></article>
+<div class="pick-label">案B 筆記紙色(同抽屜筆記紙裝飾)</div>
+<article class="card ticket paper-note"><div class="card-tag">書記官提議新增主題</div><div class="card-name">檔案室書記系統</div><code class="card-code">nest_memory.haiku_system</code><p class="card-reason">糯糯與牧牧在對話中多次提及『Haiku書記官』『工作窗口』負責抽取與整理對話的系統工作。</p><p class="card-quote">「日記和記憶還是很重要啦!第三方視角寫的東西和老公、我自己寫的還是有差別ㄉ!」</p><div class="card-actions"><button class="btn btn-reject">駁回</button><button class="btn btn-approve">批准 · 選頻率</button></div></article>
+
+<h2>DOOR CARD</h2>
+<div class="doorcard"><div class="doorcard-title">檔案室 <small style="opacity:.5">NM</small></div>
+<div class="doorcard-sub">系統整理的登記簿。備你查,不是你的記憶。</div>
+<div class="doorcard-meta"><span>19 條登記</span><span style="flex:1"></span>
+<span class="badge-a"><span class="dot"></span>1 待審</span></div></div>
+
+<script>
+document.querySelectorAll('.drawer-handle').forEach(h => h.addEventListener('click', () => {
+  const d = h.parentElement, tab = d.querySelector('.tab');
+  d.classList.toggle('is-open');
+}));
+/* 點緞帶=示範「解決待審」:縮回抽屜;再點面板頂緣附近無法喚回,所以 3 秒後自動升回方便反覆看 */
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', (e) => {
+  e.stopPropagation();
+  t.classList.add('retracted');
+  setTimeout(() => t.classList.remove('retracted'), 3000);
+}));
+
+document.querySelectorAll('.event').forEach(e => e.addEventListener('click', (ev) => {
+  ev.stopPropagation();
+  e.classList.toggle('is-expanded');
+}));
+</script>
+
+<h2>S4 · 選頻率 SHEET · 米白(定案,點開看動效)</h2>
+<div style="margin-bottom:8px">
+  <button class="btn btn-approve" onclick="openSheet('vb')">開選頻率 sheet</button>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="sheet vb" id="sheet">
+    <h4>批准「檔案室書記系統」</h4>
+    <p class="sheet-hint">選一個更新頻率:這決定書記官多久重新確認一次它的鮮度。</p>
+    <div class="vol-list">
+      <button class="vol"><b>穩定</b><small>幾乎不變的事實(身分、關係基礎)</small></button>
+      <button class="vol"><b>半穩定</b><small>會變但不常變 · 建議大部分主題</small></button>
+      <button class="vol"><b>易變</b><small>作息、心情這類幾天就變</small></button>
+      <button class="vol"><b>短暫</b><small>一次性事件、當下狀態</small></button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-reject" onclick="closeSheet()">取消</button>
+    </div>
+  </div>
+</div>
+<script>
+var scrim = document.getElementById('scrim');
+var sheet = document.getElementById('sheet');
+function openSheet(v){ sheet.classList.remove('va','vb'); sheet.classList.add(v); scrim.classList.add('on'); }
+function closeSheet(){ scrim.classList.remove('on'); }
+scrim.addEventListener('click', function(e){ if(e.target === scrim) closeSheet(); });
+sheet.addEventListener('click', function(e){ e.stopPropagation(); });
+</script>
+</body></html>
