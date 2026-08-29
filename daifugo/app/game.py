@@ -322,6 +322,7 @@ class Room:
                     key=lambda c: (rules.JOKER_STRENGTH + 1) if rules.is_wonder(c)
                     else rules.JOKER_STRENGTH if rules.is_joker(c)
                     else rules.strength(rules.card_rank(c), self.revolution),
+                    reverse=True,  # 大到小、左到右(糯糯欽定)
                 ) if seat is not None and seat < len(self.hands) else [],
                 "is_host": seat == 0,
             } if seat is not None else None,
