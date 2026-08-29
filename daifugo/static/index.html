@@ -131,12 +131,14 @@ h1{font-size:22px;text-align:center;margin:18px 0 4px;letter-spacing:.2em}
     <button class="big" id="startbtn" disabled>開 始</button>
   </div>
   <div class="sub" id="waithint" style="margin-top:14px"></div>
+  <button class="big" id="leavebtn1" style="background:#3c4a41;color:#e9e6d8">離開房間</button>
+  <button class="big" id="resetbtn" style="background:#5a2a22;color:#f0c0b0;display:none">解散房間(踢出所有人)</button>
 </section>
 
 <!-- 牌桌 -->
 <section class="screen" id="s-game">
   <div class="gameleft">
-    <div class="scorebar" id="scorebar"></div>
+    <div class="scorebar" id="scorebar"><span id="scoretext"></span><button id="leavebtn2" style="background:none;color:var(--muted);font-size:10.5px;padding:0 6px;text-decoration:underline">離開</button></div>
     <div class="board" id="board">
       <div class="center">
         <span class="revbadge" id="rev">⚡ 革命中!大小反轉</span>
@@ -257,6 +259,19 @@ function connect(){
 }
 function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));}
 
+function doLeave(){
+  if(!confirm("確定離開房間?牌局進行中會讓本局作廢喔"))return;
+  send({type:"leave"});
+  localStorage.removeItem("daifugo_token");token="";
+  if(ws)try{ws.close()}catch(e){}
+  ws=null;state=null;show("s-login");
+}
+$("leavebtn1").onclick=doLeave;
+$("leavebtn2").onclick=doLeave;
+$("resetbtn").onclick=()=>{
+  if(!confirm("解散房間會把所有人踢回登入頁(含換裝置卡住的座位),確定?"))return;
+  send({type:"reset_room"});
+};
 $("startbtn").onclick=()=>send({type:"start",settings:{wonder:$("opt-wonder").checked,eight_cut:$("opt-eight").checked,revolution:$("opt-rev").checked,tribute:$("opt-tri").checked}});
 $("playbtn").onclick=()=>{if(selected.size)send({type:"play",cards:[...selected]});};
 $("passbtn").onclick=()=>send({type:"pass"});
@@ -287,6 +302,7 @@ function renderLobby(s){
   $("lobbylist").innerHTML=s.players.map((p,i)=>`<div class="prow">${av(p)}<div><div class="pname">${p.name}${i===0?" 👑":""}</div><div class="ptag">${p.score?("累計 "+p.score+" 分"):"新玩家"}</div></div></div>`).join("");
   const host=s.you.is_host;
   $("hostpanel").style.display=host?"block":"none";
+  $("resetbtn").style.display=host?"block":"none";
   $("startbtn").disabled=s.players.length<3;
   $("waithint").textContent=host?(s.players.length<3?"等人進場中…":"人齊了,按開始!"):"等房主開局…";
 }
@@ -316,7 +332,7 @@ function renderGame(s){
     const status=p.finished?(p.title||"出完"):(p.cards_left+" 張");
     d.innerHTML=`${bubbleFor(p)}${av(p)}<b>${p.name}${p.seat===me?"(我)":""}</b><small>${status}${p.connected?"":" · 離線"}</small>`;
     board.appendChild(d);});
-  $("scorebar").innerHTML=s.players.map(p=>`${p.emoji}${p.name} ${p.score}分`).join(" · ");
+  $("scoretext").textContent=s.players.map(p=>`${p.emoji}${p.name} ${p.score}分`).join(" · ");
   $("rev").classList.toggle("on",s.revolution);
   const tc=$("tablecards");tc.innerHTML="";
   (s.table||[]).forEach(c=>tc.appendChild(cardEl(c,true)));

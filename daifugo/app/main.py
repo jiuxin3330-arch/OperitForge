@@ -126,6 +126,11 @@ async def ws_endpoint(ws: WebSocket):
                         if not isinstance(card, str) or len(card) > 4:
                             raise game.GameError("回贈格式不對")
                         room.tribute_return(token, card)
+                    elif mtype == "leave":
+                        room.leave(token)
+                        await ws.send_json({"type": "left"})
+                    elif mtype == "reset_room":
+                        room.reset_room(token)
                     elif mtype == "ping":
                         room.touch(token, True)
                         continue

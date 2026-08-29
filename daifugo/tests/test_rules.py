@@ -217,11 +217,11 @@ class TestDeal(unittest.TestCase):
         allc = [c for h in hands for c in h]
         self.assertEqual(len(set(allc)), 56)
 
-    def test_first_leader_has_club3(self):
+    def test_first_leader_has_diamond3(self):
         deck = rules.build_deck()
         hands = rules.deal(deck, 4, random.Random(7))
         leader = rules.first_leader(hands)
-        self.assertIn("3C", hands[leader])
+        self.assertIn("3D", hands[leader])
 
 
 if __name__ == "__main__":

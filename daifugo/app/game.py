@@ -91,6 +91,39 @@ class Room:
             self.players[seat].connected = connected
             self.players[seat].last_seen = time.time()
 
+    def leave(self, token: str):
+        """離開房間。牌局進行中離開 → 本局作廢回等候室(家庭用,簡單優先)。"""
+        seat = self.seat_of(token)
+        if seat is None:
+            raise GameError("你不在這桌")
+        name = self.players[seat].name
+        self.players.pop(seat)
+        if self.phase != "lobby":
+            self._abort_to_lobby(f"{name} 離開,本局作廢")
+        else:
+            self._note(f"{name} 離開了")
+
+    def reset_room(self, token: str):
+        """房主解散房間:清空所有座位(處理換裝置/殭屍座位)。"""
+        if self.seat_of(token) != 0:
+            raise GameError("只有房主能解散房間")
+        self.players = []
+        self._abort_to_lobby("房主解散了房間,重新進場吧")
+
+    def _abort_to_lobby(self, msg: str):
+        self.phase = "lobby"
+        self.hands = []
+        self.table = None
+        self.table_by = None
+        self.turn = None
+        self.revolution = False
+        self.finished_order = []
+        self.last_titles = {}
+        self.pending_tribute = None
+        for p in self.players:
+            p.last_action = ""
+        self._note(msg)
+
     # ---- 開局 ----
     def start(self, token: str, settings: dict | None = None):
         if self.phase not in ("lobby", "round_end"):

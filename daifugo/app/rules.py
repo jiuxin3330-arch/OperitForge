@@ -191,8 +191,8 @@ def tribute_exchange(poor_hand: list[str], rich_give: str | None, revolution: bo
 
 
 def first_leader(hands: list[list[str]]) -> int:
-    """首局:持梅花3者先出;梅花3在誰手上誰先。理論上必有(整副發完)。"""
+    """首局:持方塊3者先出(P5X 官方規則)。理論上必有(整副發完)。"""
     for seat, hand in enumerate(hands):
-        if "3C" in hand:
+        if "3D" in hand:
             return seat
     return 0
