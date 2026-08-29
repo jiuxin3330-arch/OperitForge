@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>大富豪</title>
 <style>
-:root{--bg:#1b2420;--card:#f7f4ea;--ink:#22301f;--line:#3a4a3f;--hi:#e8c14a;--accent:#7bc47f;--red:#d05b4d;--muted:#8ba18f}
+:root{--bg:#1b2420;--felt1:#2c4535;--felt2:#1f332a;--card:#f7f4ea;--ink:#22301f;--hi:#e8c14a;--accent:#7bc47f;--red:#d05b4d;--muted:#8ba18f;--purple:#b39ddb}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:#e9e6d8;font:16px/1.5 system-ui,"Noto Sans TC",sans-serif;min-height:100dvh;overscroll-behavior:none}
 button{font:inherit;border:0;border-radius:12px;cursor:pointer}
 input{font:inherit;border:0;border-radius:10px;padding:10px 12px;width:100%;background:#2a362f;color:#e9e6d8;outline:none}
-.screen{display:none;min-height:100dvh;flex-direction:column;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
+.screen{display:none;min-height:100dvh;flex-direction:column;padding:max(12px,env(safe-area-inset-top)) 14px max(12px,env(safe-area-inset-bottom))}
 .screen.on{display:flex}
 h1{font-size:22px;text-align:center;margin:18px 0 4px;letter-spacing:.2em}
 .sub{color:var(--muted);text-align:center;font-size:12px;margin-bottom:20px}
@@ -24,7 +24,6 @@ h1{font-size:22px;text-align:center;margin:18px 0 4px;letter-spacing:.2em}
 .big{width:100%;padding:15px;background:var(--accent);color:var(--ink);font-weight:700;font-size:17px;margin-top:8px}
 .big:disabled{opacity:.45}
 .err{color:#f0a08f;font-size:13px;min-height:20px;text-align:center;margin-top:10px}
-/* lobby */
 .plist{display:flex;flex-direction:column;gap:10px;margin:16px 0}
 .prow{display:flex;align-items:center;gap:12px;background:#26312a;border-radius:14px;padding:10px 14px}
 .pav{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:22px;flex:none}
@@ -32,42 +31,77 @@ h1{font-size:22px;text-align:center;margin:18px 0 4px;letter-spacing:.2em}
 .toggles{display:flex;flex-direction:column;gap:8px;margin:8px 0 14px}
 .trow{display:flex;justify-content:space-between;align-items:center;background:#26312a;border-radius:12px;padding:10px 14px;font-size:14px}
 .trow input{width:auto;transform:scale(1.4)}
-/* table */
-#game{padding-bottom:8px}
-.opprow{display:flex;justify-content:space-around;gap:8px;margin-bottom:8px}
-.opp{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 10px;border-radius:12px;min-width:74px}
-.opp.turn{background:#33422f;box-shadow:0 0 0 2px var(--hi)}
-.opp .pav{width:36px;height:36px;font-size:18px}
-.opp small{font-size:10px;color:var(--muted);max-width:74px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.opp b{font-size:12px}
-.opp.gone{opacity:.4}
-.mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:130px}
-.tablecards{display:flex;gap:6px;min-height:74px;align-items:center}
-.whoseturn{font-size:14px;color:var(--hi);min-height:22px;text-align:center}
+/* ====== 牌桌(圓桌圍坐) ====== */
+#s-game{padding:max(8px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))}
+.board{flex:1;position:relative;min-height:270px;border-radius:46% / 38%;
+  background:radial-gradient(ellipse at 50% 42%,var(--felt1),var(--felt2) 78%);
+  box-shadow:inset 0 0 40px rgb(0 0 0/.35),0 4px 18px rgb(0 0 0/.3);margin:4px 0 6px}
+.seat{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;min-width:70px;transition:filter .2s}
+.seat .pav{width:44px;height:44px;font-size:21px;border:3px solid transparent;transition:border-color .2s,box-shadow .2s}
+.seat.turn .pav{border-color:var(--hi);box-shadow:0 0 14px 2px rgb(232 193 74/.55);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 20px 5px rgb(232 193 74/.7)}}
+.seat b{font-size:12px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seat small{font-size:10px;color:var(--muted)}
+.seat.gone{filter:grayscale(1) opacity(.45)}
+.seat.finished .pav{border-color:var(--accent)}
+.bubble{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;
+  padding:2px 9px;border-radius:99px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
+.bubble.on{opacity:1}
+.bubble.pass{background:#3c4a41;color:#c9d4cb}
+.bubble.played{background:var(--card);color:var(--ink)}
+.bubble.wonder{background:linear-gradient(90deg,var(--hi),var(--red));color:#fff}
+.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;width:78%}
+.tablecards{display:flex;gap:5px;min-height:64px;align-items:center;justify-content:center;flex-wrap:wrap}
+.whoseturn{font-size:13px;color:var(--hi);min-height:20px;text-align:center}
 .revbadge{font-size:11px;background:var(--red);color:#fff;border-radius:99px;padding:2px 10px;display:none}
-.revbadge.on{display:inline-block}
-.gamelog{font-size:11px;color:var(--muted);max-height:52px;overflow:hidden;text-align:center;line-height:1.5}
+.revbadge.on{display:inline-block;animation:pulse 1.4s infinite}
+.gamelog{font-size:10.5px;color:var(--muted);max-height:34px;overflow:hidden;text-align:center;line-height:1.5}
 /* cards */
-.card{width:52px;height:72px;background:var(--card);color:var(--ink);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 5px rgb(0 0 0/.35);flex:none}
-.card .r{font-size:19px}.card .s{font-size:15px}
+.card{width:50px;height:70px;background:var(--card);color:var(--ink);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 5px rgb(0 0 0/.35);flex:none;position:relative}
+.card .r{font-size:18px}.card .s{font-size:14px}
 .card.red{color:#c0392b}
 .card.joker{background:linear-gradient(160deg,#3b3b57,#141428);color:#ffd76e}
 .card.wonder{background:linear-gradient(160deg,#e8c14a,#d0574d);color:#fff}
-.card.wonder .r{font-size:13px;letter-spacing:.05em}
-.hand{display:flex;overflow-x:auto;gap:6px;padding:14px 4px 6px;-webkit-overflow-scrolling:touch}
-.hand .card{transition:transform .12s ease}
+.card.wonder .r{font-size:12px;letter-spacing:.05em}
+.card.sm{width:42px;height:59px}.card.sm .r{font-size:15px}.card.sm .s{font-size:12px}
+.hand{display:flex;overflow-x:auto;gap:6px;padding:16px 4px 6px;-webkit-overflow-scrolling:touch}
+.hand .card{transition:transform .12s ease,opacity .2s,box-shadow .2s}
 .hand .card.sel{transform:translateY(-14px);outline:3px solid var(--hi)}
-.actions{display:flex;gap:10px;padding:8px 0 4px}
-.actions button{flex:1;padding:15px;font-size:17px;font-weight:700}
+.hand .card.playable{box-shadow:0 0 10px 2px rgb(123 196 127/.55),0 2px 5px rgb(0 0 0/.35)}
+.hand .card.dim{opacity:.35}
+.hint{font-size:11px;color:var(--muted);text-align:center;min-height:16px}
+.actions{display:flex;gap:10px;padding:6px 0 2px}
+.actions button{flex:1;padding:14px;font-size:17px;font-weight:700}
 #playbtn{background:var(--accent);color:var(--ink)}
 #passbtn{background:#3c4a41;color:#e9e6d8}
 .actions button:disabled{opacity:.35}
-#toast{position:fixed;left:50%;bottom:112px;transform:translateX(-50%);background:#000c;color:#fff;padding:8px 18px;border-radius:99px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:86vw;text-align:center}
+#toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:#000c;color:#fff;padding:8px 18px;border-radius:99px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:86vw;text-align:center;z-index:60}
 #toast.on{opacity:1}
-.scorebar{display:flex;justify-content:center;gap:14px;font-size:11px;color:var(--muted);flex-wrap:wrap}
-.endpanel{background:#26312a;border-radius:16px;padding:18px;margin:12px 0;text-align:center}
+.scorebar{display:flex;justify-content:center;gap:12px;font-size:10.5px;color:var(--muted);flex-wrap:wrap;padding:2px 0}
+.endpanel{background:#26312a;border-radius:16px;padding:16px;margin:8px 0;text-align:center}
 .endpanel h2{font-size:17px;margin-bottom:10px}
 .endpanel .t{margin:4px 0;font-size:14px}
+/* 特效大字 */
+#fxbanner{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:50}
+#fxbanner span{font-size:34px;font-weight:900;letter-spacing:.1em;opacity:0;transform:scale(.6);
+  text-shadow:0 3px 18px rgb(0 0 0/.6);padding:14px 30px;border-radius:20px}
+#fxbanner.play span{animation:fxpop 1.5s cubic-bezier(.22,1.2,.4,1) forwards}
+@keyframes fxpop{12%{opacity:1;transform:scale(1.12)}22%{transform:scale(1)}78%{opacity:1}100%{opacity:0;transform:scale(1.05)}}
+.fx-revolution{color:#ff8a70;background:rgb(90 20 10/.75)}
+.fx-eight{color:#ffd76e;background:rgb(70 55 5/.78)}
+.fx-wonder{color:#fff;background:linear-gradient(120deg,rgb(200 150 30/.9),rgb(190 70 55/.9))}
+.fx-joker{color:#e6d7ff;background:rgb(50 35 90/.8)}
+.fx-pass{color:#cfe0d2;background:rgb(30 45 38/.85);font-size:24px!important}
+/* ====== 橫屏 ====== */
+@media (orientation:landscape) and (max-height:520px){
+  #s-game{flex-direction:row;gap:10px;align-items:stretch}
+  .gameleft{flex:1.35;display:flex;flex-direction:column;min-width:0}
+  .gameright{flex:1;display:flex;flex-direction:column;min-width:0;justify-content:flex-end}
+  .board{min-height:0;margin:0}
+  .hand{padding-top:14px;flex-wrap:wrap;overflow-y:auto;max-height:56vh}
+  .actions button{padding:10px;font-size:15px}
+  #fxbanner span{font-size:26px}
+}
 </style>
 </head>
 <body>
@@ -100,35 +134,88 @@ h1{font-size:22px;text-align:center;margin:18px 0 4px;letter-spacing:.2em}
 
 <!-- 牌桌 -->
 <section class="screen" id="s-game">
-  <div class="opprow" id="opps"></div>
-  <div class="scorebar" id="scorebar"></div>
-  <div class="mid">
-    <span class="revbadge" id="rev">革命中!大小反轉</span>
-    <div class="tablecards" id="tablecards"></div>
-    <div class="whoseturn" id="whoseturn"></div>
-    <div class="gamelog" id="gamelog"></div>
+  <div class="gameleft">
+    <div class="scorebar" id="scorebar"></div>
+    <div class="board" id="board">
+      <div class="center">
+        <span class="revbadge" id="rev">⚡ 革命中!大小反轉</span>
+        <div class="tablecards" id="tablecards"></div>
+        <div class="whoseturn" id="whoseturn"></div>
+        <div class="gamelog" id="gamelog"></div>
+      </div>
+    </div>
   </div>
-  <div id="tributebox" style="display:none;text-align:center">
-    <div class="sub">你是大富豪!點一張手牌回贈給大貧民</div>
-  </div>
-  <div id="endbox" class="endpanel" style="display:none"></div>
-  <div class="hand" id="hand"></div>
-  <div class="actions" id="actionrow">
-    <button id="passbtn">PASS</button>
-    <button id="playbtn">出 牌</button>
+  <div class="gameright">
+    <div id="tributebox" style="display:none;text-align:center">
+      <div class="sub">你是大富豪!點一張手牌回贈給大貧民</div>
+    </div>
+    <div id="endbox" class="endpanel" style="display:none"></div>
+    <div class="hint" id="handhint"></div>
+    <div class="hand" id="hand"></div>
+    <div class="actions" id="actionrow">
+      <button id="passbtn">PASS</button>
+      <button id="playbtn">出 牌</button>
+    </div>
   </div>
 </section>
 <div id="toast"></div>
+<div id="fxbanner"><span id="fxtext"></span></div>
 
 <script>
 "use strict";
 const EMOJIS=["🐭","🐶","🐱","🐰","🦊","🐻","🐼","🐸","🐥","🦄","🐙","🐳","🍓","🍞","🌵","🌙","⭐","🍀","🍙","🎀"];
 const COLORS=["#E8C14A","#7BC47F","#71C2CB","#C8B8D9","#F37EB6","#DA724F","#8BA18F","#F7F4EA"];
-let emoji=EMOJIS[0],color=COLORS[0],token=localStorage.getItem("daifugo_token")||"",ws=null,state=null,selected=new Set(),lastTurnWasMe=false;
+let emoji=EMOJIS[0],color=COLORS[0],token=localStorage.getItem("daifugo_token")||"",ws=null,state=null,selected=new Set(),lastTurnWasMe=false,lastFxSeq=0;
 
 const $=id=>document.getElementById(id);
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));$(id).classList.add("on");}
 function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("on");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),2200);}
+
+/* ---- 規則鏡像(僅提示用,server 仍權威) ---- */
+const RANKS=["3","4","5","6","7","8","9","10","J","Q","K","A","2"];
+const isJK=c=>c==="JO1"||c==="JO2", isWD=c=>c==="WO1"||c==="WO2";
+const rankOf=c=>(isJK(c)||isWD(c))?null:c.slice(0,-1);
+const str_=(r,rev)=>{const i=RANKS.indexOf(r);return rev?12-i:i;};
+const JKS=13;
+function groupStrength(cards,rev){
+  if(cards.some(isWD))return null;
+  const rs=new Set(cards.filter(c=>!isJK(c)).map(rankOf));
+  if(rs.size===0)return JKS;
+  if(rs.size===1)return str_([...rs][0],rev);
+  return null;}
+function comboOK(cards,table,rev,wonderOn){
+  if(cards.some(isWD))return wonderOn&&cards.length===1;
+  const gs=groupStrength(cards,rev);
+  if(gs===null)return false;
+  if(!table)return true;
+  if(table.some(isWD))return false;
+  if(cards.length!==table.length)return false;
+  const ts=groupStrength(table,rev);
+  return ts===null||gs>ts;}
+function playableSet(hand,table,rev,wonderOn){
+  const set=new Set();
+  const jokers=hand.filter(isJK);
+  const byRank={};
+  for(const c of hand){const r=rankOf(c);if(r)(byRank[r]=byRank[r]||[]).push(c);}
+  for(const c of hand){
+    if(isWD(c)){if(wonderOn)set.add(c);continue;}
+    if(comboOK([c],table,rev,wonderOn)){set.add(c);continue;}
+    const r=rankOf(c);
+    const pool=r?byRank[r].concat(jokers):hand.filter(isJK).concat();
+    for(let size=2;size<=4;size++){
+      if(pool.length>=size&&comboOK(pool.slice(0,size),table,rev,wonderOn)){set.add(c);break;}
+    }
+    if(isJK(c)){ /* joker 可補任何組或單出 */
+      for(const r2 in byRank){
+        const pool2=byRank[r2].concat(jokers);
+        for(let size=Math.max(2,(table?table.length:2));size<=4;size++){
+          if(pool2.length>=size&&comboOK(pool2.slice(0,size),table,rev,wonderOn)){set.add(c);break;}
+        }
+        if(set.has(c))break;
+      }
+    }
+  }
+  return set;}
 
 /* 頭像選擇器 */
 EMOJIS.forEach(e=>{const b=document.createElement("button");b.type="button";b.textContent=e;if(e===emoji)b.classList.add("sel");
@@ -136,13 +223,12 @@ b.onclick=()=>{emoji=e;document.querySelectorAll("#emojis button").forEach(x=>x.
 COLORS.forEach(c=>{const b=document.createElement("button");b.type="button";b.style.background=c;if(c===color)b.classList.add("sel");
 b.onclick=()=>{color=c;document.querySelectorAll("#colors button").forEach(x=>x.classList.toggle("sel",x.style.background===b.style.background));};$("colors").appendChild(b);});
 
-function cardEl(code,small){const d=document.createElement("div");d.className="card";
-if(code==="JO1"||code==="JO2"){d.classList.add("joker");d.innerHTML='<span class="r">J</span><span class="s">🃏</span>';}
-else if(code==="WO1"||code==="WO2"){d.classList.add("wonder");d.innerHTML='<span class="r">WONDER</span><span class="s">✦</span>';}
+function cardEl(code,small){const d=document.createElement("div");d.className="card"+(small?" sm":"");
+if(isJK(code)){d.classList.add("joker");d.innerHTML='<span class="r">J</span><span class="s">🃏</span>';}
+else if(isWD(code)){d.classList.add("wonder");d.innerHTML='<span class="r">WONDER</span><span class="s">✦</span>';}
 else{const suit=code.slice(-1),rank=code.slice(0,-1);const sym={C:"♣",D:"♦",H:"♥",S:"♠"}[suit];
 if(suit==="D"||suit==="H")d.classList.add("red");
 d.innerHTML=`<span class="r">${rank}</span><span class="s">${sym}</span>`;}
-if(small){d.style.width="44px";d.style.height="62px";}
 return d;}
 
 async function join(){
@@ -173,8 +259,23 @@ $("startbtn").onclick=()=>send({type:"start",settings:{wonder:$("opt-wonder").ch
 $("playbtn").onclick=()=>{if(selected.size)send({type:"play",cards:[...selected]});};
 $("passbtn").onclick=()=>send({type:"pass"});
 
+const FX_TEXT={revolution:["⚡ 革命!大小反轉","fx-revolution",[80,50,80,50,160]],
+  eight_cut:["8 切!清場","fx-eight",[100,60,100]],
+  wonder:["✦ WONDER!","fx-wonder",[60,40,60,40,60,40,180]],
+  joker:["🃏 JOKER!","fx-joker",[90]],
+  all_pass:["全員 PASS,清場","fx-pass",[60]]};
+function playFx(fx){
+  const conf=FX_TEXT[fx.kind];if(!conf)return;
+  const [text,cls,vib]=conf;
+  const b=$("fxbanner"),t=$("fxtext");
+  t.textContent=text;t.className=cls;
+  b.classList.remove("play");void b.offsetWidth;b.classList.add("play");
+  if(navigator.vibrate)navigator.vibrate(vib);
+}
+
 function render(){
   const s=state;if(!s||!s.you){show("s-login");return;}
+  if(s.fx&&s.fx.seq>lastFxSeq){lastFxSeq=s.fx.seq;playFx(s.fx);}
   if(s.phase==="lobby"){renderLobby(s);show("s-lobby");return;}
   renderGame(s);show("s-game");
 }
@@ -186,42 +287,63 @@ function renderLobby(s){
   $("startbtn").disabled=s.players.length<3;
   $("waithint").textContent=host?(s.players.length<3?"等人進場中…":"人齊了,按開始!"):"等房主開局…";
 }
+/* 圓桌座位配置:rel = 相對自己的順時針位移 */
+const SEAT_POS={
+  3:{1:[16,26],2:[84,26]},
+  4:{1:[10,50],2:[50,13],3:[90,50]}};
+function seatPos(rel,n){
+  if(rel===0)return [50,90];
+  return (SEAT_POS[n]&&SEAT_POS[n][rel])||[50,13];}
+function bubbleFor(p){
+  if(!p.last_action)return "";
+  if(p.last_action==="PASS")return '<span class="bubble pass on">PASS</span>';
+  if(p.last_action==="wonder")return '<span class="bubble wonder on">WONDER!</span>';
+  return `<span class="bubble played on">${p.last_action}</span>`;}
 function renderGame(s){
-  const me=s.you.seat;
-  $("opps").innerHTML=s.players.map(p=>{
-    const cls="opp"+(s.turn===p.seat?" turn":"")+(p.connected?"":" gone");
+  const me=s.you.seat,n=s.players.length;
+  /* 圓桌圍坐 */
+  const board=$("board");
+  board.querySelectorAll(".seat").forEach(e=>e.remove());
+  s.players.forEach(p=>{
+    const rel=(p.seat-me+n)%n;
+    const [x,y]=seatPos(rel,n);
+    const d=document.createElement("div");
+    d.className="seat"+(s.turn===p.seat?" turn":"")+(p.connected?"":" gone")+(p.finished?" finished":"");
+    d.style.left=x+"%";d.style.top=y+"%";
     const status=p.finished?(p.title||"出完"):(p.cards_left+" 張");
-    return `<div class="${cls}">${av(p)}<b>${p.name}${p.seat===me?"(我)":""}</b><small>${status}${p.connected?"":" · 離線"}</small></div>`;}).join("");
+    d.innerHTML=`${bubbleFor(p)}${av(p)}<b>${p.name}${p.seat===me?"(我)":""}</b><small>${status}${p.connected?"":" · 離線"}</small>`;
+    board.appendChild(d);});
   $("scorebar").innerHTML=s.players.map(p=>`${p.emoji}${p.name} ${p.score}分`).join(" · ");
   $("rev").classList.toggle("on",s.revolution);
   const tc=$("tablecards");tc.innerHTML="";
   (s.table||[]).forEach(c=>tc.appendChild(cardEl(c,true)));
-  if(!s.table)tc.innerHTML='<span style="color:var(--muted);font-size:13px">場上乾淨,自由出牌</span>';
+  if(!s.table)tc.innerHTML='<span style="color:var(--muted);font-size:12px">場上乾淨,自由出牌</span>';
   const myTurn=s.turn===me&&s.phase==="playing";
   $("whoseturn").textContent=s.phase==="playing"?(myTurn?"輪到你了!":("輪到 "+(s.players[s.turn]?.name??"")+"")):"";
   if(myTurn&&!lastTurnWasMe){if(navigator.vibrate)navigator.vibrate([120,60,120]);}
   lastTurnWasMe=myTurn;
-  $("gamelog").innerHTML=(s.log||[]).slice(-3).join("<br>");
-  /* tribute */
+  $("gamelog").innerHTML=(s.log||[]).slice(-2).join("<br>");
   const tributeMine=s.phase==="tribute"&&s.tribute&&s.tribute.rich===me;
   $("tributebox").style.display=tributeMine?"block":"none";
-  /* round end */
   if(s.phase==="round_end"){
     const titles=s.players.filter(p=>p.title).map(p=>`<div class="t">${p.emoji} ${p.name} — <b>${p.title}</b>(累計 ${p.score} 分)</div>`).join("");
     $("endbox").innerHTML=`<h2>本局結束</h2>${titles}`+(s.you.is_host?'<button class="big" id="nextbtn">再來一局</button>':'<div class="sub" style="margin-top:8px">等房主開下一局…</div>');
     $("endbox").style.display="block";
     const nb=$("nextbtn");if(nb)nb.onclick=()=>send({type:"start"});
   }else{$("endbox").style.display="none";}
-  /* hand */
+  /* 手牌 + 可出提示 */
   const hand=$("hand");hand.innerHTML="";
   selected=new Set([...selected].filter(c=>s.you.hand.includes(c)));
+  const playable=myTurn?playableSet(s.you.hand,s.table,s.revolution,s.settings.wonder):null;
   s.you.hand.forEach(c=>{const el=cardEl(c);
     if(selected.has(c))el.classList.add("sel");
+    if(playable){el.classList.add(playable.has(c)?"playable":"dim");}
     el.onclick=()=>{
       if(tributeMine){send({type:"tribute_return",card:c});return;}
       if(selected.has(c))selected.delete(c);else selected.add(c);
       el.classList.toggle("sel");updateButtons();};
     hand.appendChild(el);});
+  $("handhint").textContent=myTurn?(playable&&playable.size?"亮起的牌可以出(可多選同數字)":"沒有能壓過的牌,只能 PASS"):"";
   $("actionrow").style.display=(s.phase==="playing")?"flex":"none";
   updateButtons();
 }
@@ -231,7 +353,6 @@ function updateButtons(){
   $("playbtn").disabled=!myTurn||selected.size===0;
   $("passbtn").disabled=!myTurn||!s.table;
 }
-/* 重連:有 token 就直接連 */
 if(token)connect();
 </script>
 </body>

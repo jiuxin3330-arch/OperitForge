@@ -27,6 +27,7 @@ class Player:
         self.color = color
         self.connected = True
         self.last_seen = time.time()
+        self.last_action = ""  # 本輪最後動作:出牌/PASS(顯示用)
 
 
 class Room:
@@ -44,6 +45,8 @@ class Room:
         self.finished_order: list[int] = []
         self.last_titles: dict[int, str] = {}     # 上局 座位→頭銜
         self.pending_tribute: dict | None = None  # {"poor":, "rich":, "card":}
+        self.fx_seq = 0
+        self.last_fx: dict | None = None          # {"seq","kind","by"} 前端動畫用
         self.scores = self._load_scores()
         self.log: list[str] = []
 
@@ -110,6 +113,8 @@ class Room:
         self.revolution = False
         self.table = None
         self.table_by = None
+        for p in self.players:
+            p.last_action = ""
         prev_titles = self.last_titles
         self.finished_order = []
         self.pending_tribute = None
@@ -196,8 +201,16 @@ class Room:
         if fx["revolution_toggle"]:
             self.revolution = not self.revolution
             self._note("革命!大小反轉")
+            self._push_fx("revolution", seat)
+        if fx["wonder"]:
+            self._push_fx("wonder", seat)
+        elif fx["clear"]:
+            self._push_fx("eight_cut", seat)
+        elif any(rules.is_joker(c) for c in cards):
+            self._push_fx("joker", seat)
         label = "Wonder!" if fx["wonder"] else "+".join(cards)
         self._note(f"{self.players[seat].name} 出 {label}")
+        self.players[seat].last_action = "wonder" if fx["wonder"] else f"出 {len(cards)} 張"
 
         finished_now = not self.hands[seat]
         if finished_now:
@@ -222,6 +235,7 @@ class Room:
         if self.table is None:
             raise GameError("自由出牌時不能 PASS")
         self._note(f"{self.players[seat].name} PASS")
+        self.players[seat].last_action = "PASS"
         nxt = self._next_active(seat)
         # 繞回最後出牌者(或其已出完)=其他人全沒壓 → 清場自由出
         if nxt == self.table_by:
@@ -229,11 +243,13 @@ class Room:
             self.table_by = None
             self.turn = nxt
             self._note("全員 PASS,清場")
+            self._push_fx("all_pass", seat)
         elif self.table_by in self.finished_order and self._passes_back_past(seat):
             self.table = None
             self.table_by = None
             self.turn = nxt
             self._note("全員 PASS,清場")
+            self._push_fx("all_pass", seat)
         else:
             self.turn = nxt
 
@@ -285,12 +301,14 @@ class Room:
                  "cards_left": len(self.hands[i]) if i < len(self.hands) else 0,
                  "finished": i in self.finished_order,
                  "title": self.last_titles.get(i, ""),
+                 "last_action": p.last_action,
                  "score": self.scores.get(p.name, 0)}
                 for i, p in enumerate(self.players)
             ],
             "table": self.table,
             "table_by": self.table_by,
             "turn": self.turn,
+            "fx": self.last_fx,
             "you": {
                 "seat": seat,
                 "hand": sorted(
@@ -307,6 +325,10 @@ class Room:
                 if self.pending_tribute else None),
             "log": self.log[-12:],
         }
+
+    def _push_fx(self, kind: str, by: int):
+        self.fx_seq += 1
+        self.last_fx = {"seq": self.fx_seq, "kind": kind, "by": by}
 
     def _note(self, msg: str):
         self.log.append(msg)
