@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>大富豪</title>
+<style>
+:root{--bg:#1b2420;--card:#f7f4ea;--ink:#22301f;--line:#3a4a3f;--hi:#e8c14a;--accent:#7bc47f;--red:#d05b4d;--muted:#8ba18f}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:#e9e6d8;font:16px/1.5 system-ui,"Noto Sans TC",sans-serif;min-height:100dvh;overscroll-behavior:none}
+button{font:inherit;border:0;border-radius:12px;cursor:pointer}
+input{font:inherit;border:0;border-radius:10px;padding:10px 12px;width:100%;background:#2a362f;color:#e9e6d8;outline:none}
+.screen{display:none;min-height:100dvh;flex-direction:column;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
+.screen.on{display:flex}
+h1{font-size:22px;text-align:center;margin:18px 0 4px;letter-spacing:.2em}
+.sub{color:var(--muted);text-align:center;font-size:12px;margin-bottom:20px}
+.field{margin-bottom:14px}.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+.emoji-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.emoji-grid button{aspect-ratio:1;font-size:24px;background:#2a362f;border-radius:12px}
+.emoji-grid button.sel{outline:3px solid var(--hi)}
+.color-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.color-row button{width:34px;height:34px;border-radius:50%}
+.color-row button.sel{outline:3px solid #fff}
+.big{width:100%;padding:15px;background:var(--accent);color:var(--ink);font-weight:700;font-size:17px;margin-top:8px}
+.big:disabled{opacity:.45}
+.err{color:#f0a08f;font-size:13px;min-height:20px;text-align:center;margin-top:10px}
+/* lobby */
+.plist{display:flex;flex-direction:column;gap:10px;margin:16px 0}
+.prow{display:flex;align-items:center;gap:12px;background:#26312a;border-radius:14px;padding:10px 14px}
+.pav{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:22px;flex:none}
+.pname{font-weight:600}.ptag{font-size:11px;color:var(--muted)}
+.toggles{display:flex;flex-direction:column;gap:8px;margin:8px 0 14px}
+.trow{display:flex;justify-content:space-between;align-items:center;background:#26312a;border-radius:12px;padding:10px 14px;font-size:14px}
+.trow input{width:auto;transform:scale(1.4)}
+/* table */
+#game{padding-bottom:8px}
+.opprow{display:flex;justify-content:space-around;gap:8px;margin-bottom:8px}
+.opp{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 10px;border-radius:12px;min-width:74px}
+.opp.turn{background:#33422f;box-shadow:0 0 0 2px var(--hi)}
+.opp .pav{width:36px;height:36px;font-size:18px}
+.opp small{font-size:10px;color:var(--muted);max-width:74px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opp b{font-size:12px}
+.opp.gone{opacity:.4}
+.mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:130px}
+.tablecards{display:flex;gap:6px;min-height:74px;align-items:center}
+.whoseturn{font-size:14px;color:var(--hi);min-height:22px;text-align:center}
+.revbadge{font-size:11px;background:var(--red);color:#fff;border-radius:99px;padding:2px 10px;display:none}
+.revbadge.on{display:inline-block}
+.gamelog{font-size:11px;color:var(--muted);max-height:52px;overflow:hidden;text-align:center;line-height:1.5}
+/* cards */
+.card{width:52px;height:72px;background:var(--card);color:var(--ink);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 5px rgb(0 0 0/.35);flex:none}
+.card .r{font-size:19px}.card .s{font-size:15px}
+.card.red{color:#c0392b}
+.card.joker{background:linear-gradient(160deg,#3b3b57,#141428);color:#ffd76e}
+.card.wonder{background:linear-gradient(160deg,#e8c14a,#d0574d);color:#fff}
+.card.wonder .r{font-size:13px;letter-spacing:.05em}
+.hand{display:flex;overflow-x:auto;gap:6px;padding:14px 4px 6px;-webkit-overflow-scrolling:touch}
+.hand .card{transition:transform .12s ease}
+.hand .card.sel{transform:translateY(-14px);outline:3px solid var(--hi)}
+.actions{display:flex;gap:10px;padding:8px 0 4px}
+.actions button{flex:1;padding:15px;font-size:17px;font-weight:700}
+#playbtn{background:var(--accent);color:var(--ink)}
+#passbtn{background:#3c4a41;color:#e9e6d8}
+.actions button:disabled{opacity:.35}
+#toast{position:fixed;left:50%;bottom:112px;transform:translateX(-50%);background:#000c;color:#fff;padding:8px 18px;border-radius:99px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:86vw;text-align:center}
+#toast.on{opacity:1}
+.scorebar{display:flex;justify-content:center;gap:14px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.endpanel{background:#26312a;border-radius:16px;padding:18px;margin:12px 0;text-align:center}
+.endpanel h2{font-size:17px;margin-bottom:10px}
+.endpanel .t{margin:4px 0;font-size:14px}
+</style>
+</head>
+<body>
+<!-- 進場 -->
+<section class="screen on" id="s-login">
+  <h1>大 富 豪</h1><div class="sub">P5X 家規版 · 手機打牌</div>
+  <div class="field"><label>共用密碼</label><input id="pw" type="password" autocomplete="off"></div>
+  <div class="field"><label>你的名字</label><input id="nick" maxlength="12" autocomplete="off"></div>
+  <div class="field"><label>選個頭像</label><div class="emoji-grid" id="emojis"></div>
+  <div class="color-row" id="colors"></div></div>
+  <button class="big" id="joinbtn">進 場</button>
+  <div class="err" id="loginerr"></div>
+</section>
+
+<!-- 等候室 -->
+<section class="screen" id="s-lobby">
+  <h1>等 候 室</h1><div class="sub">3 人可開局,4 人滿座</div>
+  <div class="plist" id="lobbylist"></div>
+  <div id="hostpanel" style="display:none">
+    <div class="toggles">
+      <label class="trow">Wonder(P5X 靈魂牌)<input type="checkbox" id="opt-wonder" checked></label>
+      <label class="trow">8 切<input type="checkbox" id="opt-eight" checked></label>
+      <label class="trow">革命<input type="checkbox" id="opt-rev"></label>
+      <label class="trow">上供下貢<input type="checkbox" id="opt-tri"></label>
+    </div>
+    <button class="big" id="startbtn" disabled>開 始</button>
+  </div>
+  <div class="sub" id="waithint" style="margin-top:14px"></div>
+</section>
+
+<!-- 牌桌 -->
+<section class="screen" id="s-game">
+  <div class="opprow" id="opps"></div>
+  <div class="scorebar" id="scorebar"></div>
+  <div class="mid">
+    <span class="revbadge" id="rev">革命中!大小反轉</span>
+    <div class="tablecards" id="tablecards"></div>
+    <div class="whoseturn" id="whoseturn"></div>
+    <div class="gamelog" id="gamelog"></div>
+  </div>
+  <div id="tributebox" style="display:none;text-align:center">
+    <div class="sub">你是大富豪!點一張手牌回贈給大貧民</div>
+  </div>
+  <div id="endbox" class="endpanel" style="display:none"></div>
+  <div class="hand" id="hand"></div>
+  <div class="actions" id="actionrow">
+    <button id="passbtn">PASS</button>
+    <button id="playbtn">出 牌</button>
+  </div>
+</section>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const EMOJIS=["🐭","🐶","🐱","🐰","🦊","🐻","🐼","🐸","🐥","🦄","🐙","🐳","🍓","🍞","🌵","🌙","⭐","🍀","🍙","🎀"];
+const COLORS=["#E8C14A","#7BC47F","#71C2CB","#C8B8D9","#F37EB6","#DA724F","#8BA18F","#F7F4EA"];
+let emoji=EMOJIS[0],color=COLORS[0],token=localStorage.getItem("daifugo_token")||"",ws=null,state=null,selected=new Set(),lastTurnWasMe=false;
+
+const $=id=>document.getElementById(id);
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));$(id).classList.add("on");}
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("on");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),2200);}
+
+/* 頭像選擇器 */
+EMOJIS.forEach(e=>{const b=document.createElement("button");b.type="button";b.textContent=e;if(e===emoji)b.classList.add("sel");
+b.onclick=()=>{emoji=e;document.querySelectorAll("#emojis button").forEach(x=>x.classList.toggle("sel",x.textContent===e));};$("emojis").appendChild(b);});
+COLORS.forEach(c=>{const b=document.createElement("button");b.type="button";b.style.background=c;if(c===color)b.classList.add("sel");
+b.onclick=()=>{color=c;document.querySelectorAll("#colors button").forEach(x=>x.classList.toggle("sel",x.style.background===b.style.background));};$("colors").appendChild(b);});
+
+function cardEl(code,small){const d=document.createElement("div");d.className="card";
+if(code==="JO1"||code==="JO2"){d.classList.add("joker");d.innerHTML='<span class="r">J</span><span class="s">🃏</span>';}
+else if(code==="WO1"||code==="WO2"){d.classList.add("wonder");d.innerHTML='<span class="r">WONDER</span><span class="s">✦</span>';}
+else{const suit=code.slice(-1),rank=code.slice(0,-1);const sym={C:"♣",D:"♦",H:"♥",S:"♠"}[suit];
+if(suit==="D"||suit==="H")d.classList.add("red");
+d.innerHTML=`<span class="r">${rank}</span><span class="s">${sym}</span>`;}
+if(small){d.style.width="44px";d.style.height="62px";}
+return d;}
+
+async function join(){
+  $("loginerr").textContent="";
+  try{
+    const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({password:$("pw").value,name:$("nick").value,emoji,color})});
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.detail||"進場失敗");
+    token=j.token;localStorage.setItem("daifugo_token",token);
+    connect();
+  }catch(e){$("loginerr").textContent=e.message;}
+}
+$("joinbtn").onclick=join;
+
+function connect(){
+  if(ws)try{ws.close()}catch(e){}
+  ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws?token="+encodeURIComponent(token));
+  ws.onmessage=ev=>{const m=JSON.parse(ev.data);
+    if(m.type==="error"){toast(m.msg);if(/無效的座位/.test(m.msg)){localStorage.removeItem("daifugo_token");token="";show("s-login");}return;}
+    if(m.type==="state"){state=m;render();}};
+  ws.onclose=()=>{if(token)setTimeout(connect,1500);};
+  setInterval(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:"ping"}))},25000);
+}
+function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));}
+
+$("startbtn").onclick=()=>send({type:"start",settings:{wonder:$("opt-wonder").checked,eight_cut:$("opt-eight").checked,revolution:$("opt-rev").checked,tribute:$("opt-tri").checked}});
+$("playbtn").onclick=()=>{if(selected.size)send({type:"play",cards:[...selected]});};
+$("passbtn").onclick=()=>send({type:"pass"});
+
+function render(){
+  const s=state;if(!s||!s.you){show("s-login");return;}
+  if(s.phase==="lobby"){renderLobby(s);show("s-lobby");return;}
+  renderGame(s);show("s-game");
+}
+function av(p){return `<span class="pav" style="background:${p.color}">${p.emoji}</span>`;}
+function renderLobby(s){
+  $("lobbylist").innerHTML=s.players.map((p,i)=>`<div class="prow">${av(p)}<div><div class="pname">${p.name}${i===0?" 👑":""}</div><div class="ptag">${p.score?("累計 "+p.score+" 分"):"新玩家"}</div></div></div>`).join("");
+  const host=s.you.is_host;
+  $("hostpanel").style.display=host?"block":"none";
+  $("startbtn").disabled=s.players.length<3;
+  $("waithint").textContent=host?(s.players.length<3?"等人進場中…":"人齊了,按開始!"):"等房主開局…";
+}
+function renderGame(s){
+  const me=s.you.seat;
+  $("opps").innerHTML=s.players.map(p=>{
+    const cls="opp"+(s.turn===p.seat?" turn":"")+(p.connected?"":" gone");
+    const status=p.finished?(p.title||"出完"):(p.cards_left+" 張");
+    return `<div class="${cls}">${av(p)}<b>${p.name}${p.seat===me?"(我)":""}</b><small>${status}${p.connected?"":" · 離線"}</small></div>`;}).join("");
+  $("scorebar").innerHTML=s.players.map(p=>`${p.emoji}${p.name} ${p.score}分`).join(" · ");
+  $("rev").classList.toggle("on",s.revolution);
+  const tc=$("tablecards");tc.innerHTML="";
+  (s.table||[]).forEach(c=>tc.appendChild(cardEl(c,true)));
+  if(!s.table)tc.innerHTML='<span style="color:var(--muted);font-size:13px">場上乾淨,自由出牌</span>';
+  const myTurn=s.turn===me&&s.phase==="playing";
+  $("whoseturn").textContent=s.phase==="playing"?(myTurn?"輪到你了!":("輪到 "+(s.players[s.turn]?.name??"")+"")):"";
+  if(myTurn&&!lastTurnWasMe){if(navigator.vibrate)navigator.vibrate([120,60,120]);}
+  lastTurnWasMe=myTurn;
+  $("gamelog").innerHTML=(s.log||[]).slice(-3).join("<br>");
+  /* tribute */
+  const tributeMine=s.phase==="tribute"&&s.tribute&&s.tribute.rich===me;
+  $("tributebox").style.display=tributeMine?"block":"none";
+  /* round end */
+  if(s.phase==="round_end"){
+    const titles=s.players.filter(p=>p.title).map(p=>`<div class="t">${p.emoji} ${p.name} — <b>${p.title}</b>(累計 ${p.score} 分)</div>`).join("");
+    $("endbox").innerHTML=`<h2>本局結束</h2>${titles}`+(s.you.is_host?'<button class="big" id="nextbtn">再來一局</button>':'<div class="sub" style="margin-top:8px">等房主開下一局…</div>');
+    $("endbox").style.display="block";
+    const nb=$("nextbtn");if(nb)nb.onclick=()=>send({type:"start"});
+  }else{$("endbox").style.display="none";}
+  /* hand */
+  const hand=$("hand");hand.innerHTML="";
+  selected=new Set([...selected].filter(c=>s.you.hand.includes(c)));
+  s.you.hand.forEach(c=>{const el=cardEl(c);
+    if(selected.has(c))el.classList.add("sel");
+    el.onclick=()=>{
+      if(tributeMine){send({type:"tribute_return",card:c});return;}
+      if(selected.has(c))selected.delete(c);else selected.add(c);
+      el.classList.toggle("sel");updateButtons();};
+    hand.appendChild(el);});
+  $("actionrow").style.display=(s.phase==="playing")?"flex":"none";
+  updateButtons();
+}
+function updateButtons(){
+  const s=state;if(!s)return;
+  const myTurn=s.turn===s.you.seat&&s.phase==="playing";
+  $("playbtn").disabled=!myTurn||selected.size===0;
+  $("passbtn").disabled=!myTurn||!s.table;
+}
+/* 重連:有 token 就直接連 */
+if(token)connect();
+</script>
+</body>
+</html>
