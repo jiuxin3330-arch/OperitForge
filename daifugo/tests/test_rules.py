@@ -132,6 +132,35 @@ class TestWonder(unittest.TestCase):
         self.assertFalse(ok)
 
 
+class TestSpade3Reversal(unittest.TestCase):
+    """P5X 黑桃3 反殺單張 Joker"""
+
+    def test_spade3_beats_single_joker(self):
+        ok, _ = rules.validate_play(["3S"], ["3S"], ["JO1"], revolution=False)
+        self.assertTrue(ok)
+
+    def test_other_threes_do_not(self):
+        ok, _ = rules.validate_play(["3H"], ["3H"], ["JO1"], revolution=False)
+        self.assertFalse(ok)
+
+    def test_not_against_joker_pair(self):
+        ok, _ = rules.validate_play(["3S"], ["3S"], ["JO1", "JO2"], revolution=False)
+        self.assertFalse(ok)
+
+    def test_works_in_revolution(self):
+        ok, _ = rules.validate_play(["3S"], ["3S"], ["JO2"], revolution=True)
+        self.assertTrue(ok)
+
+    def test_spade3_still_weak_normally(self):
+        ok, _ = rules.validate_play(["3S"], ["3S"], ["4D"], revolution=False)
+        self.assertFalse(ok)
+
+    def test_helper(self):
+        self.assertTrue(rules.spade3_reversal(["3S"], ["JO1"]))
+        self.assertFalse(rules.spade3_reversal(["3S"], None))
+        self.assertFalse(rules.spade3_reversal(["3S", "3H"], ["JO1"]))
+
+
 class TestPassClear(unittest.TestCase):
     """全 PASS 清場後自由出(引擎面:table=None 時任何合法組可出)"""
 

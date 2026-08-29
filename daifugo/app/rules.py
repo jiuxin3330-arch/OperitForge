@@ -118,6 +118,10 @@ def validate_play(
     if gs is None:
         return False, "牌型不合法(要同數字,Joker 可配)"
 
+    # P5X:黑桃3 反殺 —— 單張 Joker 之後可出黑桃3(壓過並清場)
+    if spade3_reversal(cards, table):
+        return True, ""
+
     if table is None:
         return True, ""
 
@@ -133,6 +137,15 @@ def validate_play(
     if gs <= ts:
         return False, "沒有比場上大"
     return True, ""
+
+
+def spade3_reversal(cards: list[str], table: list[str] | None) -> bool:
+    """P5X 黑桃3反殺:場上是單張 Joker 時,單出黑桃3 可壓過並強制清場。
+
+    革命與否皆成立(特例規則,不受反轉影響)。只對「單張」Joker 有效。
+    """
+    return (table is not None and len(table) == 1 and is_joker(table[0])
+            and cards == ["3S"])
 
 
 def play_effects(cards: list[str], wonder_enabled: bool, eight_cut: bool, revolution_enabled: bool) -> dict:

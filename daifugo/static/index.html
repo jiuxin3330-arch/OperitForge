@@ -92,6 +92,7 @@ h1{font-size:22px;text-align:center;margin:18px 0 4px;letter-spacing:.2em}
 .fx-wonder{color:#fff;background:linear-gradient(120deg,rgb(200 150 30/.9),rgb(190 70 55/.9))}
 .fx-joker{color:#e6d7ff;background:rgb(50 35 90/.8)}
 .fx-pass{color:#cfe0d2;background:rgb(30 45 38/.85);font-size:24px!important}
+.fx-spade3{color:#fff;background:rgb(20 20 30/.9);border:2px solid #ffd76e}
 /* ====== 橫屏 ====== */
 @media (orientation:landscape) and (max-height:520px){
   #s-game{flex-direction:row;gap:10px;align-items:stretch}
@@ -185,6 +186,7 @@ function groupStrength(cards,rev){
   return null;}
 function comboOK(cards,table,rev,wonderOn){
   if(cards.some(isWD))return wonderOn&&cards.length===1;
+  if(table&&table.length===1&&isJK(table[0])&&cards.length===1&&cards[0]==="3S")return true;
   const gs=groupStrength(cards,rev);
   if(gs===null)return false;
   if(!table)return true;
@@ -263,6 +265,7 @@ const FX_TEXT={revolution:["⚡ 革命!大小反轉","fx-revolution",[80,50,80,5
   eight_cut:["8 切!清場","fx-eight",[100,60,100]],
   wonder:["✦ WONDER!","fx-wonder",[60,40,60,40,60,40,180]],
   joker:["🃏 JOKER!","fx-joker",[90]],
+  spade3:["♠3 反殺 JOKER!","fx-spade3",[70,40,70,40,200]],
   all_pass:["全員 PASS,清場","fx-pass",[60]]};
 function playFx(fx){
   const conf=FX_TEXT[fx.kind];if(!conf)return;

@@ -196,6 +196,9 @@ class Room:
         fx = rules.play_effects(
             cards, self.settings["wonder"], self.settings["eight_cut"],
             self.settings["revolution"])
+        if rules.spade3_reversal(cards, self.table):
+            fx["clear"] = True
+            fx["spade3"] = True
         for c in cards:
             self.hands[seat].remove(c)
         if fx["revolution_toggle"]:
@@ -204,6 +207,9 @@ class Room:
             self._push_fx("revolution", seat)
         if fx["wonder"]:
             self._push_fx("wonder", seat)
+        elif fx.get("spade3"):
+            self._push_fx("spade3", seat)
+            self._note("黑桃3 反殺 Joker!")
         elif fx["clear"]:
             self._push_fx("eight_cut", seat)
         elif any(rules.is_joker(c) for c in cards):
