@@ -47,3 +47,14 @@
   → S4 新擬態收尾 2 版(v153)
 - 蓋章十條全部落地;api/資料流/人格語言零改動(逐條款覆核)
 - 後續:糯糯真機走查若有手感單子,小步修+sw+1
+
+## Hotfix(2026-08-29,sw v154):待審歸零膠帶爆炸 bug
+
+糯糯真機抓到:回覆完待審(歸零)後,紙膠帶標題貼變成一條縱向大長條。
+根因:膠帶空狀態的修飾 class 用了**裸名 `empty`**,撞到全域空狀態樣式
+(styles.css:1124 `.empty { min-height:150px; display:grid; }`),膠帶被撐高,
+撕邊 clip-path 百分比跟著整條拉開。S2 上線時線上一直有 1 筆待審,所以打樣過了
+但線上空狀態從沒被踩到,直到這次歸零才引爆。
+修法:改名 `is-empty`(與 is-open/is-expanded 同家族)——nestConsole.tsx 與
+styles.css 各一處,assert 補丁。備份 `*.bak-s4fix-1788017741` + `dist.prev-sw153-preemptyfix/`。
+教訓:**修飾 class 一律命名空間化**,15k 行的全域 CSS 裡裸名遲早撞車。
