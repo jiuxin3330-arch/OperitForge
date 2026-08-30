@@ -59,7 +59,13 @@
   可能有格式差;MVP 接受,步驟 5 regression 再校。
 - manifest 未記工具 schema 尺寸(turn_usage 沒有此欄);基線調查已建議補。
 
-## 檔案
-- 改:`version-bridge-app/app/main.py`(fresh_session,bak-swapmvp-*)
-- 新:`/root/chatnest-next/scripts/swap_runner.py`、`data/swap_manifests/`、
-  `data/swap_health.jsonl`、cron 一行(shadow)
+## 檔案(絕對路徑,供未來窗口定位)
+- 改:`/srv/chatnest-next/runtime/version-bridge-app/app/main.py`
+  (**fresh_session 旗子在這裡,不在 claude.py**:`ChatBody.fresh_session` 欄位
+  +`/api/chat` handler 內 `resume_id=None`+`invalidate(conv_id)` 三處;bak-swapmvp-*)
+- 新:`/root/chatnest-next/scripts/swap_runner.py`、
+  `/root/chatnest-next/data/swap_manifests/`、
+  `/root/chatnest-next/data/swap_health.jsonl`、root crontab 一行(shadow)
+- 指標所在:`/srv/chatnest-next/data/version-bridge/conversations.db` 的
+  `conversations.latest_session_id`(注意不是 `/srv/chatnest/full-stack/` 那顆舊拷貝)
+- transcripts:`/srv/chatnest-next/data/version-bridge/home/.claude/projects/-srv-chatnest-full-stack/`
