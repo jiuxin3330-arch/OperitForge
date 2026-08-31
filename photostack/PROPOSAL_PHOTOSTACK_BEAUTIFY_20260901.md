@@ -1,0 +1,43 @@
+# PhotoStack 美化提案（打樣稿 v1，等糯糯蓋章）
+
+2026-09-01｜美化窗口｜狀態：**只出了試衣間 mock，未動正式版任何一行 code**
+
+試衣間網址：https://next-chat.cn-dev.uk/photostack-lab.html
+（與 App 同站、手機直接開；純靜態打樣頁，不碰 App 本體、不動 sw 版本）
+
+## 這次對齊到的需求（糯糯 9/1 原話整理）
+
+聊天端：
+1. 目前缺「展開／收起」按鈕 → 補上，展開效果同開源項目（微信式飛散）
+2. 圖片置入位置不好看、把氣泡撐太大 → 圖片搬出氣泡，堆疊卡獨立掛在文字氣泡下方（微信同款）
+3. 展開後開源項目是一列 → **改成兩列**
+
+相簿：
+4. 做成相冊**並排**（一排兩本）
+5. 說明文字放**底部**、不佔空間（現況在側邊霸佔整排 → 不要）
+
+紀律：先打樣、糯糯蓋章後才上線。
+
+## 試衣間裡的 A/B
+
+- 聊天端「展開」按鈕位置：A 浮在堆疊卡旁邊（微信款，垂直置中）／ B 卡片正下方
+- 相簿底部文字：A 乾淨無箭頭（點文字展開）／ B 帶展開小箭頭
+
+其餘已做進 mock 的預設：卡 142×190（聊天）、118×158（相簿）、n/N 角標開、
+展開兩列自適應卡寬（96–132px，留出收起鈕位子）、「收起」鈕貼第一張卡內側（微信同款）、
+相簿展開＝該排下方整排寬兩列網格，改名／刪除收在展開區。
+
+## 蓋章之後的施工對照（正式版）
+
+- 聊天：`App.tsx` MessageAttachments 把 MessagePhotoStack 移出氣泡容器＋加展開態（FLIP 兩列，
+  參考 vendor README「展開/收起動畫」雙時間軸筆記）；styles.css 檔尾 PhotoStack 區塊加樣式
+- 相簿：`App.tsx` PhotoStackCard 改直式卡（stack 上、caption 下）＋ gallery 容器改兩欄 grid，
+  reveal 改整排寬；同步改 collectionPhotoStacks.test.ts
+- 地雷照舊：vendor default import 不動、sw 版本同步 bump、測試從 repo root 跑
+
+## Mock 技術備註
+
+- 自包含單檔 `photostack-lab.html`，vendor photo-stack.js/css 原樣內嵌（PolyForm Noncommercial，個人用 OK）
+- 測試圖為 canvas 純色卡（糯糯六張測試同款配色）
+- 展開動畫為打樣手感版（中心點 FLIP＋45ms 縱向錯落）；正式版按 README 筆記細磨
+- 已用 Playwright 412×915 過一輪：收合／展開／收起復原／A/B 切換／相簿展開，零 JS error

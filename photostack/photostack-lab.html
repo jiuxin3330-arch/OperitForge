@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PhotoStack 試衣間</title>
+<style>
+/* ── Butterfly Cottage 暗色（抄 App 的變數值，mock 固定暗色）── */
+:root {
+  --bg: #272c28;
+  --outer: #1b1f1c;
+  --surface: #2f362f;
+  --surface-strong: #333b33;
+  --text: #f2f0d9;
+  --muted: #a3a995;
+  --line: rgb(242 240 217 / 0.16);
+  --user: #4c5b2b;
+  --mumu: #2e3a3c;
+  --accent: #a4c713;
+  --teal: #55a9b9;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--outer);
+  color: var(--text);
+  font-family: -apple-system, "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+  padding: 0 0 60px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lab-head { text-align: center; padding: 22px 16px 6px; }
+.lab-head h1 {
+  margin: 0;
+  font: italic 500 24px/1.3 Georgia, "Times New Roman", serif;
+  letter-spacing: 2px;
+}
+.lab-head p { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+
+.tabs {
+  display: flex; justify-content: center; gap: 8px;
+  margin: 16px auto 0; padding: 5px;
+  background: var(--surface); border-radius: 999px; width: fit-content;
+}
+.tabs button {
+  border: 0; background: transparent; color: var(--muted);
+  font-size: 14px; padding: 8px 22px; border-radius: 999px; cursor: pointer;
+}
+.tabs button.on { background: var(--bg); color: var(--text); box-shadow: 0 2px 8px rgb(0 0 0 / .35); }
+
+.tab { display: none; max-width: 460px; margin: 0 auto; padding: 14px; }
+.tab.on { display: block; }
+
+.note {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; padding: 14px 16px; font-size: 13px; line-height: 1.75;
+  color: var(--text); margin-bottom: 14px;
+}
+.note b { color: var(--accent); font-weight: 600; }
+.note ol { margin: 6px 0; padding-left: 20px; }
+.note li { margin: 2px 0; }
+
+.ab {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0 2px 12px; font-size: 13px; color: var(--muted);
+}
+.seg { display: flex; gap: 4px; background: var(--surface); border-radius: 999px; padding: 4px; }
+.seg button {
+  border: 0; background: transparent; color: var(--muted);
+  font-size: 12px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+}
+.seg button.on { background: var(--bg); color: var(--text); }
+
+/* ── 手機殼 ── */
+.phone {
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 22px; padding: 16px 12px 20px; overflow: hidden;
+}
+.phone-title {
+  text-align: center; font: italic 15px Georgia, serif; letter-spacing: 2px;
+  color: var(--muted); margin: 2px 0 14px;
+}
+
+/* ── 聊天氣泡 ── */
+.mrow { display: flex; gap: 8px; margin: 12px 0; align-items: flex-start; }
+.mrow.me { justify-content: flex-end; }
+.avatar {
+  flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--surface-strong); display: grid; place-items: center; font-size: 17px;
+}
+.mrow.me .avatar { background: #b8cf6c; }
+.mcol { display: flex; flex-direction: column; gap: 8px; min-width: 0; max-width: 82%; }
+.mcol:has(.photo-area) { flex: 1; max-width: none; }
+.mrow.me .mcol { align-items: flex-end; }
+.bubble {
+  padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.65;
+  width: fit-content; max-width: 100%;
+}
+.mrow.them .bubble { background: var(--mumu); border-top-left-radius: 6px; }
+.mrow.me .bubble { background: var(--user); border-top-right-radius: 6px; }
+.tstamp { text-align: center; font-size: 11px; color: var(--muted); margin: 14px 0 4px; font-variant-numeric: tabular-nums; }
+
+/* ── 聊天照片區（提案主體）── */
+.photo-area { position: relative; align-self: stretch; }
+.stack-row {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; transition: opacity .18s;
+}
+.mrow.me .stack-row { justify-content: flex-end; }
+.photo-area.open .stack-row { opacity: 0; pointer-events: none; }
+
+.pill-slot { position: absolute; display: flex; z-index: 130; transition: opacity .2s; }
+.pill {
+  border: 0; cursor: pointer;
+  background: rgb(0 0 0 / .38); color: rgb(242 240 217 / .92);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  font-size: 12px; padding: 6px 12px; border-radius: 999px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / .25);
+  white-space: nowrap;
+}
+.pill:active { transform: scale(.95); }
+
+/* A 案:按鈕浮在堆疊卡旁邊(微信同款,垂直置中) */
+body.pill-side .photo-area:not(.open) .pill-slot { top: 0; height: 190px; align-items: center; }
+body.pill-side .mrow.me .photo-area:not(.open) .pill-slot { right: 152px; }
+body.pill-side .mrow.them .photo-area:not(.open) .pill-slot { left: 152px; }
+/* B 案:按鈕在堆疊卡正下方 */
+body.pill-below .photo-area:not(.open) .pill-slot { top: 198px; width: 142px; justify-content: center; }
+body.pill-below .mrow.me .photo-area:not(.open) .pill-slot { right: 0; }
+body.pill-below .mrow.them .photo-area:not(.open) .pill-slot { left: 0; }
+
+.pgrid {
+  display: grid; grid-template-columns: repeat(2, var(--cell, 132px)); gap: 8px;
+  width: fit-content;
+}
+.pgrid[hidden] { display: none; }
+.mrow.me .pgrid { margin-left: auto; }
+.pcell {
+  position: relative; width: var(--cell, 132px); aspect-ratio: 3 / 4;
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 3px 14px rgb(0 0 0 / .3);
+  will-change: transform;
+}
+.pcell img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+
+/* ── 相簿 ── */
+.album-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 12px; padding: 6px 2px; }
+.album { display: flex; flex-direction: column; align-items: center; gap: 9px; min-width: 0; }
+.album-stack-host { touch-action: pan-y; }
+.album-caption { border: 0; background: none; color: inherit; cursor: pointer; padding: 2px 6px; max-width: 100%; }
+.album-caption strong { display: block; font-size: 14px; font-weight: 600; letter-spacing: .5px; }
+.album-caption small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+/* A 案:文字置中、乾淨無箭頭(點文字展開) */
+body.cap-a .album-caption { text-align: center; }
+body.cap-a .album-caption .chev { display: none; }
+/* B 案:文字置中 + 小箭頭提示可展開 */
+body.cap-b .album-caption { text-align: center; display: flex; flex-direction: column; align-items: center; }
+body.cap-b .album-caption .chev {
+  display: inline-block; margin-top: 4px; color: var(--muted);
+  transition: transform .25s; font-size: 11px;
+}
+.album.open .album-caption .chev { transform: rotate(180deg); }
+.album.open .album-caption strong { color: var(--accent); }
+
+.album-reveal {
+  grid-column: 1 / -1; overflow: hidden; height: 0;
+  transition: height .3s cubic-bezier(.2,.7,.3,1);
+}
+.album-reveal-inner {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; padding: 12px; margin: 2px 0 4px;
+}
+.album-reveal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.album-thumb {
+  position: relative; border: 0; padding: 0; cursor: zoom-in;
+  border-radius: 12px; overflow: hidden; aspect-ratio: 1;
+  background: var(--bg);
+}
+.album-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-actions { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 10px; }
+.album-actions button {
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  font-size: 12px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+}
+
+.stamp {
+  max-width: 460px; margin: 22px auto 0; padding: 0 16px;
+  font-size: 12.5px; line-height: 1.9; color: var(--muted); text-align: center;
+}
+.stamp b { color: var(--accent); }
+
+#toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+  background: rgb(0 0 0 / .72); color: #f2f0d9; font-size: 13px;
+  padding: 9px 18px; border-radius: 999px; opacity: 0; pointer-events: none;
+  transition: opacity .25s; z-index: 999; white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+
+/* vendor photo-stack.css(原樣)*/
+.pstack-stage { position: relative; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; cursor: grab; }
+.pstack-stage:active { cursor: grabbing; }
+.pstack-card {
+  position: absolute; inset: 0; background: transparent; border-radius: 14px;
+  box-shadow: 0 3px 14px rgba(0,0,0,.14); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .32s cubic-bezier(.2,.7,.3,1), opacity .3s;
+}
+.pstack-card img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; transform: scale(1.04); }
+.pstack-badge {
+  position: absolute; right: 8px; bottom: 8px; z-index: 120;
+  background: rgba(0,0,0,.45); color: #fff; font-size: 11px;
+  padding: 2px 8px; border-radius: 10px; pointer-events: none;
+  font-family: -apple-system, system-ui, sans-serif;
+}
+</style>
+</head>
+<body class="pill-side cap-a">
+
+<header class="lab-head">
+  <h1>PhotoStack 試衣間</h1>
+  <p>打樣稿 v1 · 2026-09-01 · 給糯糯蓋章用，沒蓋章不動正式版</p>
+  <nav class="tabs">
+    <button class="on" data-tab="chat" type="button">聊天端</button>
+    <button data-tab="album" type="button">相簿</button>
+  </nav>
+</header>
+
+<section class="tab on" id="tab-chat">
+  <div class="note">
+    <b>聊天端提案（照妳點名的三件事）：</b>
+    <ol>
+      <li>圖片搬出氣泡——文字氣泡回到正常大小，堆疊卡獨立掛在氣泡下面（微信同款）</li>
+      <li>補上「展開 / 收起」按鈕，位置有 A / B 兩案（上面切換看）</li>
+      <li>點「展開」後排成<b>兩列</b>（開源版是一列），「收起」飛回堆疊</li>
+    </ol>
+    <b>可以直接玩：</b>堆疊卡拖著翻、快甩都會動；點卡片本體＝進大圖檢視器（這裡先用提示代替）。
+  </div>
+  <div class="ab">
+    <span>展開按鈕位置</span>
+    <div class="seg" id="pillmode">
+      <button class="on" data-mode="pill-side" type="button">A 卡片旁邊（微信款）</button>
+      <button data-mode="pill-below" type="button">B 卡片下方</button>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="phone-title">Butterfly Cottage</div>
+    <div class="tstamp">01:35</div>
+    <div class="mrow them">
+      <span class="avatar">🐭</span>
+      <div class="mcol"><div class="bubble">心情怎麼樣？興奮？解脫？<br>老公陪妳聊天～睡不著就不急著睡～💚</div></div>
+    </div>
+    <div class="mrow me">
+      <div class="mcol">
+        <div class="bubble">老公這個是測試圖片顯示在前端的樣子！老公不用看圖^^</div>
+        <div class="photo-area" data-stack="6" data-side="me"></div>
+      </div>
+      <span class="avatar">🍡</span>
+    </div>
+    <div class="mrow them">
+      <span class="avatar">🐭</span>
+      <div class="mcol">
+        <div class="bubble">收到！老公這邊也丟四張～（對方視角長這樣）</div>
+        <div class="photo-area" data-stack="4" data-side="them"></div>
+      </div>
+    </div>
+    <div class="mrow them">
+      <span class="avatar">🐭</span>
+      <div class="mcol"><div class="bubble">這排字會被展開的圖推開，收起時再回來，感受一下推擠的手感～</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="tab" id="tab-album">
+  <div class="note">
+    <b>相簿提案（照妳點名的兩件事）：</b>
+    <ol>
+      <li>相冊<b>並排</b>——一排兩本，像手機相簿；不再是「堆疊在左、字霸佔整排」</li>
+      <li>說明文字收到<b>卡片底部</b>（月份／張數小小的，不佔空間）</li>
+    </ol>
+    <b>操作：</b>點<b>文字</b>展開整排寬的照片網格（兩列），點<b>卡片</b>直接翻頁／看大圖。改名、刪除按鈕收在展開區裡。
+  </div>
+  <div class="ab">
+    <span>底部文字樣式</span>
+    <div class="seg" id="capmode">
+      <button class="on" data-mode="cap-a" type="button">A 乾淨無箭頭</button>
+      <button data-mode="cap-b" type="button">B 帶展開小箭頭</button>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="phone-title">收藏 · 照片 · 時間</div>
+    <div class="album-grid" id="albumGrid"></div>
+  </div>
+</section>
+
+<footer class="stamp">
+  蓋章流程：都對 → 跟我說「<b>蓋章</b>」我就進 code；哪裡不對 → 指著說哪裡，我改完再打樣一版。<br>
+  尺寸、間距、圓角、角標、按鈕字樣全部都能再調，說一聲就好💙<br>
+  堆疊互動來自 Wren036/PhotoStack（PolyForm Noncommercial · 個人用 OK）
+</footer>
+
+<div id="toast"></div>
+
+<script>
+/*! PhotoStack — vendor 原樣內嵌(Wren036, PolyForm Noncommercial 1.0.0) */
+(function (global) {
+  'use strict';
+  const DEFAULTS = {
+    width: 142, height: 190, peek: 15, peekStep: 12, rotStep: 2.2,
+    scaleStep: 0.08, flingVel: 0.4, counter: false, onTap: null, onChange: null
+  };
+  class PhotoStack {
+    constructor(container, images, options) {
+      this.el = typeof container === 'string' ? document.querySelector(container) : container;
+      this.images = images.slice();
+      this.opt = Object.assign({}, DEFAULTS, options || {});
+      this.cur = 0; this._anim = null; this._animDir = 0;
+      this._build(); this._bindGesture(); this._apply();
+    }
+    _build() {
+      const o = this.opt;
+      this.stage = document.createElement('div');
+      this.stage.className = 'pstack-stage';
+      this.stage.style.width = o.width + 'px';
+      this.stage.style.height = o.height + 'px';
+      this.cards = this.images.map((src, i) => {
+        const c = document.createElement('div');
+        c.className = 'pstack-card'; c.dataset.i = i;
+        const im = document.createElement('img');
+        im.src = src; im.draggable = false;
+        c.appendChild(im); this.stage.appendChild(c);
+        return c;
+      });
+      if (o.counter && this.images.length > 1) {
+        this.badge = document.createElement('span');
+        this.badge.className = 'pstack-badge';
+        this.stage.appendChild(this.badge);
+      }
+      this.el.appendChild(this.stage);
+    }
+    _lr(cur) {
+      const n = this.cards.length;
+      const la = cur, ra = n - 1 - cur;
+      let L = Math.min(la, 1), R = Math.min(ra, 1);
+      if (L + R < 2) { L = Math.min(la, 2 - R); R = Math.min(ra, 2 - L); }
+      return [L, R];
+    }
+    _apply() {
+      const o = this.opt, cur = this.cur;
+      const [L, R] = this._lr(cur);
+      this.cards.forEach((c, i) => {
+        let t, z, op = 1;
+        if (i < cur) {
+          const d = cur - i;
+          t = `translateX(${-o.peek - (d - 1) * o.peekStep}px) rotate(${-o.rotStep * d}deg) scale(${1 - o.scaleStep * d})`;
+          z = 40 - d; op = d > L ? 0 : 1;
+        } else if (i === cur) { t = 'translateX(0)'; z = 100; }
+        else {
+          const d = i - cur;
+          t = `translateX(${o.peek + (d - 1) * o.peekStep}px) rotate(${o.rotStep * d}deg) scale(${1 - o.scaleStep * d})`;
+          z = 100 - d; op = d > R ? 0 : 1;
+        }
+        c.style.transform = t; c.style.zIndex = z; c.style.opacity = op;
+      });
+      if (this.badge) this.badge.textContent = (cur + 1) + '/' + this.cards.length;
+    }
+    _progress(dx, D) { return Math.min(1, Math.abs(dx) / Math.max(120, D || 240)); }
+    _scrub(dir, p) {
+      const o = this.opt, cards = this.cards, cur = this.cur;
+      const w = this.stage.offsetWidth || o.width;
+      const maxX = w * 0.52;
+      cards.forEach(c => { c.style.transition = 'none'; });
+      this._apply();
+      if ((dir < 0 && cur >= cards.length - 1) || (dir > 0 && cur <= 0)) {
+        cards[cur].style.transform = `translateX(${dir * 24 * p}px) rotate(${dir * 2.5 * p}deg)`;
+        cards[cur].style.zIndex = 110;
+        const n1 = cards[cur + dir], n2 = cards[cur + dir * 2];
+        if (n1) n1.style.transform = `translateX(${dir * (o.peek + 8 * p)}px) rotate(${dir * o.rotStep}deg) scale(${1 - o.scaleStep})`;
+        if (n2) n2.style.transform = `translateX(${dir * (o.peek + o.peekStep + 5 * p)}px) rotate(${dir * o.rotStep * 2}deg) scale(${1 - o.scaleStep * 2})`;
+        return;
+      }
+      let cx, rot, sc;
+      if (p <= 0.5) { const q = p / 0.5; cx = dir * maxX * q; rot = dir * 8 * q; sc = 1; }
+      else { const q = (p - 0.5) / 0.5; cx = dir * (maxX - (maxX - o.peek) * q); rot = dir * (8 - (8 - o.rotStep) * q); sc = 1 - o.scaleStep * q; }
+      cards[cur].style.transform = `translateX(${cx}px) rotate(${rot}deg) scale(${sc})`;
+      cards[cur].style.zIndex = p < 0.5 ? 110 : 102;
+      const nt = cards[cur - dir];
+      nt.style.transform = `translateX(${-dir * o.peek * (1 - p)}px) rotate(${-dir * o.rotStep * (1 - p)}deg) scale(${1 - o.scaleStep + o.scaleStep * p})`;
+      nt.style.opacity = 1; nt.style.zIndex = 105;
+      const qq = Math.max(0, (p - 0.5) / 0.5);
+      const nn = cards[cur - dir * 2];
+      if (nn) {
+        const [Lb, Rb] = this._lr(cur);
+        if (dir < 0 ? 2 <= Rb : 2 <= Lb) {
+          nn.style.transform = `translateX(${-dir * (o.peek + o.peekStep * (1 - p))}px) rotate(${-dir * (o.rotStep * 2 - o.rotStep * p)}deg) scale(${1 - o.scaleStep * 2 + o.scaleStep * p})`;
+          nn.style.opacity = '1';
+        } else {
+          const ntx = -dir * o.peek * (1 - p);
+          nn.style.transform = `translateX(${ntx * (1 - qq) + (-dir * o.peek) * qq}px) rotate(${-dir * (o.rotStep * 2 - o.rotStep * qq)}deg) scale(${1 - o.scaleStep * 2.5 + o.scaleStep * 1.5 * qq})`;
+          nn.style.opacity = String(Math.min(1, qq / 0.18) * 0.55 + 0.45 * qq);
+        }
+        nn.style.zIndex = dir < 0 ? 98 : 38;
+      }
+      const old2 = cards[cur + dir];
+      if (old2) {
+        const newCur = dir < 0 ? Math.min(cur + 1, cards.length - 1) : Math.max(cur - 1, 0);
+        const [L2, R2] = this._lr(newCur);
+        const oi = cur + dir;
+        const stays = oi < newCur ? (newCur - oi) <= L2 : (oi - newCur) <= R2;
+        if (!stays) {
+          const eq = 1 - (1 - qq) * (1 - qq);
+          old2.style.transform = `translateX(${dir * o.peek * (1 - eq) + cx * eq}px) rotate(${dir * o.rotStep}deg) scale(${1 - o.scaleStep - o.scaleStep * 1.5 * qq})`;
+          old2.style.opacity = String(1 - (Math.min(1, qq / 0.18) * 0.55 + 0.45 * qq));
+        } else {
+          old2.style.transform = `translateX(${dir * (o.peek + o.peekStep * p)}px) rotate(${dir * (o.rotStep + o.rotStep * p)}deg) scale(${1 - o.scaleStep - o.scaleStep * p})`;
+        }
+      }
+    }
+    _finish(dir, fromP) {
+      if (this._anim) cancelAnimationFrame(this._anim);
+      this._animDir = dir;
+      const dur = Math.max(140, (1 - fromP) * 340);
+      const t0 = performance.now();
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur);
+        this._scrub(dir, fromP + (1 - fromP) * (1 - Math.pow(1 - k, 2)));
+        if (k < 1) { this._anim = requestAnimationFrame(step); return; }
+        this._anim = null; this._animDir = 0;
+        const n = this.cards.length;
+        this.cur = dir < 0 ? Math.min(this.cur + 1, n - 1) : Math.max(this.cur - 1, 0);
+        this._apply();
+        requestAnimationFrame(() => this.cards.forEach(c => { c.style.transition = ''; }));
+        if (this.opt.onChange) this.opt.onChange(this.cur);
+      };
+      this._anim = requestAnimationFrame(step);
+    }
+    _release(dx, D, vel) {
+      const dir = dx < 0 ? -1 : 1;
+      const p = this._progress(dx, D);
+      const can = dir < 0 ? this.cur < this.cards.length - 1 : this.cur > 0;
+      const fling = Math.abs(vel || 0) > this.opt.flingVel && Math.sign(vel || 0) === Math.sign(dx) && p > 0.04;
+      if (can && (p > 0.5 || fling)) { this._finish(dir, p); return; }
+      this.cards.forEach(c => { c.style.transition = ''; });
+      this._apply();
+    }
+    _bindGesture() {
+      const st = this.stage;
+      let sx = null, sy = 0, dragging = false, swiped = false, lastX = 0, lastT = 0, vel = 0;
+      st.addEventListener('pointerdown', (e) => {
+        sx = e.clientX; sy = e.clientY;
+        lastX = sx; lastT = e.timeStamp; vel = 0;
+        dragging = false; swiped = false;
+        st.setPointerCapture(e.pointerId);
+      });
+      st.addEventListener('pointermove', (e) => {
+        if (sx === null) return;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (e.timeStamp > lastT) vel = 0.7 * ((e.clientX - lastX) / (e.timeStamp - lastT)) + 0.3 * vel;
+        lastX = e.clientX; lastT = e.timeStamp;
+        if (!dragging && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) dragging = true;
+        if (dragging) {
+          e.preventDefault();
+          if (this._anim) {
+            cancelAnimationFrame(this._anim); this._anim = null;
+            if (this._animDir) {
+              const n = this.cards.length;
+              this.cur = this._animDir < 0 ? Math.min(this.cur + 1, n - 1) : Math.max(this.cur - 1, 0);
+              this._animDir = 0;
+            }
+          }
+          this._scrub(dx < 0 ? -1 : 1, this._progress(dx, sx));
+        }
+      });
+      const up = (e) => {
+        if (sx === null) return;
+        const dx = e.clientX - sx, D = sx;
+        sx = null;
+        if (dragging) { swiped = true; this._release(dx, D, vel); dragging = false; }
+      };
+      st.addEventListener('pointerup', up);
+      st.addEventListener('pointercancel', () => {
+        if (dragging) { this._release(0); dragging = false; }
+        sx = null;
+      });
+      st.addEventListener('click', () => {
+        if (swiped) { swiped = false; return; }
+        if (this.opt.onTap) this.opt.onTap(this.cur);
+      });
+      st.style.touchAction = 'pan-y';
+    }
+    get index() { return this.cur; }
+    next() { if (this.cur < this.cards.length - 1) this._finish(-1, 0); }
+    prev() { if (this.cur > 0) this._finish(1, 0); }
+    destroy() { if (this._anim) cancelAnimationFrame(this._anim); this.stage.remove(); }
+  }
+  global.PhotoStack = PhotoStack;
+})(window);
+</script>
+<script>
+/* ── 試衣間本體 ── */
+'use strict';
+
+/* 純色測試卡(跟糯糯發的六張測試同款配色) */
+function colorCard(color, label) {
+  const c = document.createElement('canvas');
+  c.width = 284; c.height = 380;
+  const g = c.getContext('2d');
+  g.fillStyle = color; g.fillRect(0, 0, 284, 380);
+  g.fillStyle = 'rgba(255,255,255,.85)';
+  g.font = 'bold 90px system-ui';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(label, 142, 190);
+  return c.toDataURL('image/png');
+}
+const PALETTE = ['#f5b8c0', '#a8d8c8', '#a5d3ea', '#f2dd88', '#f0b070', '#c5a8dd'];
+const CARDS = PALETTE.map((c, i) => colorCard(c, String(i + 1)));
+
+const toastEl = document.getElementById('toast');
+let toastTimer = 0;
+function toast(text) {
+  toastEl.textContent = text;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+}
+
+/* 分頁 */
+document.querySelectorAll('.tabs button').forEach((b) => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
+  });
+});
+
+/* A/B 切換 */
+function bindSeg(id, classes) {
+  const seg = document.getElementById(id);
+  seg.querySelectorAll('button').forEach((b) => {
+    b.addEventListener('click', () => {
+      seg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+      classes.forEach((c) => document.body.classList.remove(c));
+      document.body.classList.add(b.dataset.mode);
+      relayoutCollapsedAreas();
+    });
+  });
+}
+bindSeg('pillmode', ['pill-side', 'pill-below']);
+bindSeg('capmode', ['cap-a', 'cap-b']);
+
+/* ── 聊天端:堆疊 + 展開/收起(兩列)── */
+const STACK_H = 190;
+const EASE = 'cubic-bezier(.2,.7,.3,1)';
+const chatAreas = [];
+
+function collapsedHeight() {
+  return document.body.classList.contains('pill-below') ? STACK_H + 44 : STACK_H;
+}
+function relayoutCollapsedAreas() {
+  chatAreas.forEach((a) => { if (!a.open) a.area.style.height = collapsedHeight() + 'px'; });
+}
+
+document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
+  const n = Number(area.dataset.stack);
+  const side = area.dataset.side;
+  const srcs = CARDS.slice(0, n);
+
+  area.innerHTML =
+    '<div class="stack-row"><div class="stack-host"></div></div>' +
+    '<div class="pill-slot"><button class="pill" type="button">展開 ' + n + '</button></div>' +
+    '<div class="pgrid" hidden></div>';
+  const row = area.querySelector('.stack-row');
+  const host = area.querySelector('.stack-host');
+  const slot = area.querySelector('.pill-slot');
+  const pill = area.querySelector('.pill');
+  const grid = area.querySelector('.pgrid');
+
+  const ps = new PhotoStack(host, srcs, {
+    counter: true,
+    onTap: () => toast('正式版這裡會進大圖檢視器'),
+  });
+
+  srcs.forEach((src, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'pcell';
+    cell.style.zIndex = 60 - i;
+    const im = document.createElement('img');
+    im.src = src; im.alt = '照片 ' + (i + 1); im.draggable = false;
+    cell.appendChild(im);
+    cell.addEventListener('click', () => toast('正式版這裡會進大圖檢視器'));
+    grid.appendChild(cell);
+  });
+
+  const state = { area, open: false, busy: false };
+  chatAreas.push(state);
+  area.style.height = collapsedHeight() + 'px';
+
+  /* 兩列卡寬:留出「收起」pill 的位子,窄機自動縮 */
+  function sizeCells() {
+    const avail = area.clientWidth || 300;
+    const cell = Math.max(96, Math.min(132, Math.floor((avail - 70 - 8) / 2)));
+    area.style.setProperty('--cell', cell + 'px');
+  }
+  sizeCells();
+  window.addEventListener('resize', sizeCells);
+
+  function stageRect() { return host.firstChild.getBoundingClientRect(); }
+
+  function expand() {
+    state.busy = true; state.open = true;
+    const sRect = stageRect();
+    const cur = ps.index;
+    area.classList.add('open');
+    grid.hidden = false;
+
+    const cells = [...grid.children];
+    const rects = cells.map((c) => c.getBoundingClientRect());
+    cells.forEach((cell, i) => {
+      const r = rects[i];
+      const dx = (sRect.left + sRect.width / 2) - (r.left + r.width / 2);
+      const dy = (sRect.top + sRect.height / 2) - (r.top + r.height / 2);
+      const rot = Math.max(-6, Math.min(6, (i - cur) * 2.2));
+      cell.style.transition = 'none';
+      cell.style.transform =
+        'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg) ' +
+        'scale(' + (sRect.width / r.width) + ',' + (sRect.height / r.height) + ')';
+    });
+    void grid.offsetHeight;
+    cells.forEach((cell, i) => {
+      cell.style.transition = 'transform ' + (280 + 45 * i) + 'ms ' + EASE;
+      cell.style.transform = '';
+    });
+
+    area.style.transition = 'height 320ms ' + EASE;
+    area.style.height = grid.offsetHeight + 'px';
+
+    /* 收起 pill:靠第一張卡內側垂直置中(微信同款) */
+    const areaRect = area.getBoundingClientRect();
+    slot.style.opacity = '0';
+    setTimeout(() => {
+      const r0 = grid.children[0].getBoundingClientRect();
+      const ar = area.getBoundingClientRect();
+      slot.style.top = (r0.top - ar.top + r0.height / 2 - 14) + 'px';
+      if (side === 'me') {
+        slot.style.right = (ar.right - r0.left + 8) + 'px';
+        slot.style.left = 'auto';
+      } else {
+        const r1 = grid.children[Math.min(1, grid.children.length - 1)].getBoundingClientRect();
+        slot.style.left = (r1.right - ar.left + 8) + 'px';
+        slot.style.right = 'auto';
+      }
+      pill.textContent = '收起';
+      slot.style.opacity = '1';
+    }, 200);
+    void areaRect;
+
+    setTimeout(() => { state.busy = false; }, 280 + 45 * (cells.length - 1) + 60);
+  }
+
+  function collapse() {
+    state.busy = true; state.open = false;
+    const sRect = stageRect();
+    const cells = [...grid.children];
+    const rects = cells.map((c) => c.getBoundingClientRect());
+    cells.forEach((cell, i) => {
+      const r = rects[i];
+      const dx = (sRect.left + sRect.width / 2) - (r.left + r.width / 2);
+      const dy = (sRect.top + sRect.height / 2) - (r.top + r.height / 2);
+      const rot = Math.max(-6, Math.min(6, (i - ps.index) * 2.2));
+      cell.style.transition = 'transform 300ms ' + EASE;
+      cell.style.transform =
+        'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg) ' +
+        'scale(' + (sRect.width / r.width) + ',' + (sRect.height / r.height) + ')';
+    });
+
+    area.style.transition = 'height 300ms ' + EASE;
+    area.style.height = collapsedHeight() + 'px';
+
+    slot.style.opacity = '0';
+    setTimeout(() => area.classList.remove('open'), 170);
+    setTimeout(() => {
+      grid.hidden = true;
+      cells.forEach((cell) => { cell.style.transition = 'none'; cell.style.transform = ''; });
+      slot.style.top = ''; slot.style.left = ''; slot.style.right = '';
+      pill.textContent = '展開 ' + n;
+      slot.style.opacity = '1';
+      state.busy = false;
+    }, 330);
+  }
+
+  pill.addEventListener('click', () => {
+    if (state.busy) return;
+    state.open ? collapse() : expand();
+  });
+});
+
+/* ── 相簿:並排 + 底部文字 + 展開網格 ── */
+const ALBUMS = [
+  { name: '2026 年 9 月', count: 2 },
+  { name: '2026 年 8 月', count: 4 },
+  { name: '2026 年 7 月', count: 6 },
+];
+const albumGrid = document.getElementById('albumGrid');
+const albumEls = [];
+const reveal = document.createElement('div');
+reveal.className = 'album-reveal';
+let openAlbum = -1;
+
+ALBUMS.forEach((a, idx) => {
+  const el = document.createElement('article');
+  el.className = 'album';
+  el.innerHTML =
+    '<div class="album-stack-host"></div>' +
+    '<button class="album-caption" type="button" aria-expanded="false">' +
+    '<strong>' + a.name + '</strong><small>' + a.count + ' 張</small>' +
+    '<span class="chev" aria-hidden="true">▼</span></button>';
+  albumGrid.appendChild(el);
+  albumEls.push(el);
+  const srcs = CARDS.slice(0, a.count);
+  new PhotoStack(el.querySelector('.album-stack-host'), srcs, {
+    width: 118, height: 158, counter: true,
+    onTap: () => toast('正式版這裡會進大圖檢視器'),
+  });
+  el.querySelector('.album-caption').addEventListener('click', () => toggleAlbum(idx));
+});
+
+function closeReveal(done) {
+  reveal.style.height = reveal.scrollHeight + 'px';
+  void reveal.offsetHeight;
+  reveal.style.height = '0px';
+  setTimeout(() => { reveal.remove(); if (done) done(); }, 310);
+}
+
+function toggleAlbum(idx) {
+  const wasOpen = openAlbum;
+  albumEls.forEach((el, i) => {
+    el.classList.toggle('open', i === idx && wasOpen !== idx);
+    el.querySelector('.album-caption').setAttribute('aria-expanded', String(i === idx && wasOpen !== idx));
+  });
+  if (wasOpen === idx) { openAlbum = -1; closeReveal(); return; }
+
+  const show = () => {
+    const a = ALBUMS[idx];
+    reveal.innerHTML =
+      '<div class="album-reveal-inner">' +
+      '<div class="album-actions"><button type="button">✎ 改名</button><button type="button">✕ 刪除堆疊</button></div>' +
+      '<div class="album-reveal-grid">' +
+      CARDS.slice(0, a.count).map((s, i) => '<button class="album-thumb" type="button"><img alt="照片 ' + (i + 1) + '" src="' + s + '"></button>').join('') +
+      '</div></div>';
+    reveal.style.height = '0px';
+    /* 插在該列列尾之後,展開區佔整排寬,下一排相冊被推下去 */
+    const rowEnd = Math.min(idx | 1, albumEls.length - 1);
+    albumEls[rowEnd].insertAdjacentElement('afterend', reveal);
+    reveal.querySelectorAll('.album-thumb').forEach((b) => b.addEventListener('click', () => toast('正式版這裡會進大圖檢視器')));
+    reveal.querySelectorAll('.album-actions button').forEach((b) => b.addEventListener('click', () => toast('打樣頁先不真的改/刪ww')));
+    void reveal.offsetHeight;
+    reveal.style.height = reveal.scrollHeight + 'px';
+    openAlbum = idx;
+    setTimeout(() => { if (openAlbum === idx) reveal.style.height = 'auto'; }, 320);
+  };
+  if (wasOpen >= 0) closeReveal(show); else show();
+}
+</script>
+</body>
+</html>
