@@ -165,14 +165,10 @@ body {
   will-change: transform; background: var(--bg);
 }
 .fcell img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
-/* 收起入口①:第一張照片底部 */
-.fcollapse {
-  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
-  border: 0; cursor: pointer;
-  background: rgb(0 0 0 / .42); color: rgb(242 240 217 / .92);
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-  font-size: 12px; padding: 5px 14px; border-radius: 999px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / .25); white-space: nowrap;
+/* 收起入口①:第一張照片底部——同位置、透明熱區,無任何按鈕、不遮照片(糯糯裁定) */
+.fcell-hotzone {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 34%;
+  background: transparent; cursor: pointer;
 }
 /* 收起入口②:兩列中間的間隔區(整條可點,照片很多時就近收) */
 .gap-strip {
@@ -230,7 +226,7 @@ body {
 
 <header class="lab-head">
   <h1>PhotoStack 試衣間</h1>
-  <p>打樣稿 v4 · 2026-09-01 · 給糯糯蓋章用，沒蓋章不動正式版</p>
+  <p>打樣稿 v5 · 2026-09-01 · 給糯糯蓋章用，沒蓋章不動正式版</p>
   <nav class="tabs">
     <button class="on" data-tab="chat" type="button">聊天端</button>
     <button data-tab="album" type="button">相簿</button>
@@ -277,13 +273,12 @@ body {
 
 <section class="tab" id="tab-album">
   <div class="note">
-    <b>相簿 v4（已照妳的裁定改）：</b>
+    <b>相簿 v5（已照妳的裁定改）：</b>
     <ol>
-      <li>收起的怪幀修掉了：改<b>按側歸位</b>——頂卡回頂位、左右卡收向左右探邊、深層卡邊收邊隱入被遮住，落地那一幀＝堆疊本人</li>
-      <li>展開起飛也照同一套姿態出發（起飛幀＝堆疊本人），頭尾都無跳變</li>
-      <li>旁邊相冊推走、雙收起入口、無角標——照舊</li>
+      <li>第一張照片上的「收起」按鈕<b>刪除了</b>——照片上不放任何會遮擋的按鍵。收起位置不變：<b>點第一張照片的底部區域</b>就收，只是看不到按鈕</li>
+      <li>另一個收起入口照舊：兩列<b>中間的間隔區</b>整條可點</li>
+      <li>按側歸位、推走旁鄰、無角標——照舊</li>
     </ol>
-    <b>試試 7 月那本：</b>12 張，滑到最下面點中間空隙就近收～
   </div>
   <div class="phone">
     <div class="phone-title">收藏 · 照片 · 時間</div>
@@ -766,7 +761,7 @@ function openAlbumFly(idx) {
     srcs.map((s, i) =>
       '<button class="fcell" type="button" aria-label="放大檢視照片 ' + (i + 1) + '">' +
       '<img alt="" src="' + s + '">' +
-      (i === 0 ? '<span class="fcollapse">收起</span>' : '') +
+      (i === 0 ? '<span class="fcell-hotzone" aria-label="收起相冊"></span>' : '') +
       '</button>').join('') +
     '<button class="gap-strip" type="button" aria-label="收起相冊"></button>' +
     '</div>' +
@@ -804,7 +799,7 @@ function openAlbumFly(idx) {
   });
 
   cells.forEach((c) => c.addEventListener('click', () => toast('正式版這裡會進大圖檢視器')));
-  reveal.querySelector('.fcollapse').addEventListener('click', (e) => { e.stopPropagation(); closeAlbumFly(); });
+  reveal.querySelector('.fcell-hotzone').addEventListener('click', (e) => { e.stopPropagation(); closeAlbumFly(); });
   reveal.querySelector('.gap-strip').addEventListener('click', () => closeAlbumFly());
   reveal.querySelectorAll('.album-actions button').forEach((b) => b.addEventListener('click', () => toast('打樣頁先不真的改/刪ww')));
 
