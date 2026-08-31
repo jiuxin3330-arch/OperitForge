@@ -104,7 +104,7 @@ body {
 .photo-area { position: relative; align-self: stretch; }
 .stack-row {
   position: absolute; top: 0; left: 0; right: 0;
-  display: flex; transition: opacity .18s;
+  display: flex; transition: opacity .15s;
 }
 .mrow.me .stack-row { justify-content: flex-end; }
 .photo-area.open .stack-row { opacity: 0; pointer-events: none; }
@@ -125,15 +125,15 @@ body {
 .mrow.me .photo-area:not(.open) .pill-slot { right: 152px; }
 .mrow.them .photo-area:not(.open) .pill-slot { left: 152px; }
 
-/* 聊天展開=一列,卡片跟堆疊同尺寸(微信原版,不放大) */
+/* 聊天展開=一列,卡片比堆疊小一號(糯糯裁定:聊天要同時看字,卡不能大) */
 .pgrid {
-  display: grid; grid-template-columns: 142px; gap: 10px;
+  display: grid; grid-template-columns: 112px; gap: 9px;
   width: fit-content;
 }
 .pgrid[hidden] { display: none; }
 .mrow.me .pgrid { margin-left: auto; }
 .pcell {
-  position: relative; width: 142px; aspect-ratio: 3 / 4;
+  position: relative; width: 112px; aspect-ratio: 3 / 4;
   border-radius: 14px; overflow: hidden;
   box-shadow: 0 3px 14px rgb(0 0 0 / .3);
   will-change: transform;
@@ -230,7 +230,7 @@ body {
 
 <header class="lab-head">
   <h1>PhotoStack 試衣間</h1>
-  <p>打樣稿 v3 · 2026-09-01 · 給糯糯蓋章用，沒蓋章不動正式版</p>
+  <p>打樣稿 v4 · 2026-09-01 · 給糯糯蓋章用，沒蓋章不動正式版</p>
   <nav class="tabs">
     <button class="on" data-tab="chat" type="button">聊天端</button>
     <button data-tab="album" type="button">相簿</button>
@@ -239,11 +239,11 @@ body {
 
 <section class="tab on" id="tab-chat">
   <div class="note">
-    <b>聊天端 v3（已照妳的裁定改）：</b>
+    <b>聊天端 v4（已照妳的裁定改）：</b>
     <ol>
-      <li>展開一列、<b>不放大</b>——展開後的卡片跟堆疊完全同尺寸，只有位移沒有縮放（微信原版）</li>
-      <li>照片上的 <b>1/6 角標拿掉了</b>，純照片；正式版也不會有</li>
-      <li>按鈕位置 A（卡片旁邊）定案固定</li>
+      <li>展開後的卡<b>縮小</b>了（112，比堆疊小一號）——聊天要同時看字，卡不該大</li>
+      <li>修了「點展開時按鈕瞬移到左上」——現在原地淡出、換位淡入</li>
+      <li>收起改<b>按側歸位</b>（微信筆記規格）：每張卡收向自己該在的探邊位置，落地那一幀就是堆疊本人，不再竄怪幀</li>
     </ol>
     <b>可以直接玩：</b>堆疊卡拖著翻、快甩都會動；點卡片本體＝進大圖檢視器（這裡先用提示代替）。
   </div>
@@ -277,11 +277,11 @@ body {
 
 <section class="tab" id="tab-album">
   <div class="note">
-    <b>相簿 v3（已照妳的裁定改）：</b>
+    <b>相簿 v4（已照妳的裁定改）：</b>
     <ol>
-      <li>展開時<b>旁邊的相冊會整個被推下去</b>——不會孤零零留在原位了</li>
-      <li>收起重做：照片改用<b>替身飛回</b>（微信同路數），不再拖著版面一起縮，應該順很多——妳感受一下</li>
-      <li>角標拿掉、照片純淨；展開＝點相片底部文字；收起＝①第一張照片底部「收起」②兩列<b>中間間隔區</b>整條可點</li>
+      <li>收起的怪幀修掉了：改<b>按側歸位</b>——頂卡回頂位、左右卡收向左右探邊、深層卡邊收邊隱入被遮住，落地那一幀＝堆疊本人</li>
+      <li>展開起飛也照同一套姿態出發（起飛幀＝堆疊本人），頭尾都無跳變</li>
+      <li>旁邊相冊推走、雙收起入口、無角標——照舊</li>
     </ol>
     <b>試試 7 月那本：</b>12 張，滑到最下面點中間空隙就近收～
   </div>
@@ -537,6 +537,32 @@ const chatAreas = [];
 
 function collapsedHeight() { return STACK_H; }
 
+/* ── 堆疊姿態(vendor _apply 同公式):起飛與落點都對齊真堆疊的渲染 ──
+   README 規格:隱形卡「以同側探邊卡的位置與旋轉角出發/收向同側探邊」,
+   落地幀 == 靜態堆疊,替身移除瞬間零跳變 */
+function stackPoseInfo(i, cur, n) {
+  const raw = i - cur;
+  const maxR = cur === 0 ? 2 : 1, maxL = cur === n - 1 ? 2 : 1;
+  const visible = raw === 0 ||
+    (raw > 0 && raw <= Math.min(maxR, n - 1 - cur)) ||
+    (raw < 0 && -raw <= Math.min(maxL, cur));
+  const d = Math.max(-2, Math.min(2, raw));
+  return {
+    peekX: d === 0 ? 0 : (d > 0 ? 15 + (d - 1) * 12 : -(15 + (-d - 1) * 12)),
+    rot: d * 2.2,
+    sc: 1 - 0.08 * Math.abs(d),
+    depth: Math.abs(raw),
+    visible,
+  };
+}
+function stackPoseTransform(sRect, r, info) {
+  return 'translate(' +
+    (((sRect.left + sRect.width / 2) - (r.left + r.width / 2)) + info.peekX) + 'px,' +
+    ((sRect.top + sRect.height / 2) - (r.top + r.height / 2)) + 'px) ' +
+    'rotate(' + info.rot + 'deg) ' +
+    'scale(' + (sRect.width / r.width * info.sc) + ',' + (sRect.height / r.height * info.sc) + ')';
+}
+
 document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
   const n = Number(area.dataset.stack);
   const side = area.dataset.side;
@@ -579,25 +605,29 @@ document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
     state.busy = true; state.open = true;
     const sRect = stageRect();
     const cur = ps.index;
+    /* pill 先鎖在當前位置再淡出,避免 class 切換瞬移到左上 */
+    const prect = pill.getBoundingClientRect();
+    const arect0 = area.getBoundingClientRect();
+    slot.style.top = (prect.top - arect0.top) + 'px';
+    slot.style.left = (prect.left - arect0.left) + 'px';
+    slot.style.right = 'auto';
     area.classList.add('open');
     grid.hidden = false;
 
     const cells = [...grid.children];
     const rects = cells.map((c) => c.getBoundingClientRect());
     cells.forEach((cell, i) => {
-      const r = rects[i];
-      const dx = (sRect.left + sRect.width / 2) - (r.left + r.width / 2);
-      const dy = (sRect.top + sRect.height / 2) - (r.top + r.height / 2);
-      const rot = Math.max(-6, Math.min(6, (i - cur) * 2.2));
+      const info = stackPoseInfo(i, cur, cells.length);
       cell.style.transition = 'none';
-      cell.style.transform =
-        'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg) ' +
-        'scale(' + (sRect.width / r.width) + ',' + (sRect.height / r.height) + ')';
+      cell.style.transform = stackPoseTransform(sRect, rects[i], info);
+      cell.style.zIndex = 100 - info.depth;
+      cell.style.opacity = info.visible ? '1' : '0';
     });
     void grid.offsetHeight;
     cells.forEach((cell, i) => {
-      cell.style.transition = 'transform ' + (280 + 45 * i) + 'ms ' + EASE;
+      cell.style.transition = 'transform ' + (280 + 45 * i) + 'ms ' + EASE + ', opacity 120ms';
       cell.style.transform = '';
+      cell.style.opacity = '1';
     });
 
     area.style.transition = 'height 320ms ' + EASE;
@@ -628,32 +658,33 @@ document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
   function collapse() {
     state.busy = true; state.open = false;
     const sRect = stageRect();
+    const cur = ps.index;
     const cells = [...grid.children];
     const rects = cells.map((c) => c.getBoundingClientRect());
+    /* 按側歸位:每張卡收向自己該在的探邊姿態,落地幀=靜態堆疊,零跳變 */
     cells.forEach((cell, i) => {
-      const r = rects[i];
-      const dx = (sRect.left + sRect.width / 2) - (r.left + r.width / 2);
-      const dy = (sRect.top + sRect.height / 2) - (r.top + r.height / 2);
-      const rot = Math.max(-6, Math.min(6, (i - ps.index) * 2.2));
-      cell.style.transition = 'transform 300ms ' + EASE;
-      cell.style.transform =
-        'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg) ' +
-        'scale(' + (sRect.width / r.width) + ',' + (sRect.height / r.height) + ')';
+      const info = stackPoseInfo(i, cur, cells.length);
+      cell.style.transition = 'transform 300ms ' + EASE + ', opacity 130ms 170ms';
+      cell.style.transform = stackPoseTransform(sRect, rects[i], info);
+      cell.style.zIndex = 100 - info.depth;
+      if (!info.visible) cell.style.opacity = '0';
     });
 
     area.style.transition = 'height 300ms ' + EASE;
     area.style.height = collapsedHeight() + 'px';
 
     slot.style.opacity = '0';
-    setTimeout(() => area.classList.remove('open'), 230);
+    setTimeout(() => area.classList.remove('open'), 190);
     setTimeout(() => {
       grid.hidden = true;
-      cells.forEach((cell) => { cell.style.transition = 'none'; cell.style.transform = ''; });
+      cells.forEach((cell) => {
+        cell.style.transition = 'none'; cell.style.transform = ''; cell.style.opacity = '';
+      });
       slot.style.top = ''; slot.style.left = ''; slot.style.right = '';
       pill.textContent = '展開 ' + n;
       slot.style.opacity = '1';
       state.busy = false;
-    }, 330);
+    }, 350);
   }
 
   pill.addEventListener('click', () => {
@@ -701,12 +732,6 @@ ALBUMS.forEach((a, idx) => {
 
 function albumStageRect(idx) {
   return albumEls[idx].querySelector('.pstack-stage').getBoundingClientRect();
-}
-function flyTransform(sRect, r, rot) {
-  const dx = (sRect.left + sRect.width / 2) - (r.left + r.width / 2);
-  const dy = (sRect.top + sRect.height / 2) - (r.top + r.height / 2);
-  return 'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg) ' +
-    'scale(' + (sRect.width / r.width) + ',' + (sRect.height / r.height) + ')';
 }
 
 /* 其他相冊的聯動:記舊位→改版面→從舊位平移到新位(README「下方內容聯動」簡版) */
@@ -759,16 +784,19 @@ function openAlbumFly(idx) {
   const rects = cells.map((c) => c.getBoundingClientRect());
   const cur = albumStacks[idx].index;
   cells.forEach((cell, i) => {
+    const info = stackPoseInfo(i, cur, cells.length);
     cell.style.transition = 'none';
-    cell.style.transform = flyTransform(sRect, rects[i], Math.max(-6, Math.min(6, (i - cur) * 2.2)));
-    cell.style.zIndex = 60 - i;
+    cell.style.transform = stackPoseTransform(sRect, rects[i], info);
+    cell.style.zIndex = 100 - info.depth;
+    cell.style.opacity = info.visible ? '1' : '0';
   });
   const actions = reveal.querySelector('.album-actions');
   actions.style.opacity = '0';
   void reveal.offsetHeight;
   cells.forEach((cell, i) => {
-    cell.style.transition = 'transform ' + (280 + 45 * Math.min(i, 10)) + 'ms ' + EASE;
+    cell.style.transition = 'transform ' + (280 + 45 * Math.min(i, 10)) + 'ms ' + EASE + ', opacity 120ms';
     cell.style.transform = '';
+    cell.style.opacity = '1';
   });
   requestAnimationFrame(() => {
     actions.style.transition = 'opacity .2s .25s';
@@ -824,21 +852,21 @@ function closeAlbumFly(done) {
 
   flipOthers(others, before);
 
+  /* 按側歸位:落地幀=靜態堆疊(頂卡最高、探邊次之、深卡淡出被遮),零跳變 */
+  const cur = albumStacks[idx].index;
   clones.forEach((cl, i) => {
     void cl.offsetWidth;
-    const r = cardRects[i];
-    cl.style.transition = 'transform 300ms ' + EASE;
-    cl.style.transform = 'translate(' +
-      ((sRect.left + sRect.width / 2) - (r.left + r.width / 2)) + 'px,' +
-      ((sRect.top + sRect.height / 2) - (r.top + r.height / 2)) + 'px) ' +
-      'rotate(' + Math.max(-6, Math.min(6, (i - albumStacks[idx].index) * 2.2)) + 'deg) ' +
-      'scale(' + (sRect.width / r.width) + ',' + (sRect.height / r.height) + ')';
+    const info = stackPoseInfo(i, cur, clones.length);
+    cl.style.transition = 'transform 300ms ' + EASE + ', opacity 130ms 170ms';
+    cl.style.transform = stackPoseTransform(sRect, cardRects[i], info);
+    cl.style.zIndex = 300 - info.depth;
+    if (!info.visible) cl.style.opacity = '0';
   });
 
   setTimeout(() => {
-    stage.style.transition = 'opacity .15s';
+    stage.style.transition = 'opacity .13s';
     stage.style.opacity = '1';
-  }, 190);
+  }, 200);
   setTimeout(() => {
     clones.forEach((cl) => cl.remove());
     stage.style.transition = ''; stage.style.opacity = '';
