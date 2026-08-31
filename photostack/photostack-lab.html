@@ -125,15 +125,15 @@ body {
 .mrow.me .photo-area:not(.open) .pill-slot { right: 152px; }
 .mrow.them .photo-area:not(.open) .pill-slot { left: 152px; }
 
-/* 聊天展開=一列(微信原版) */
+/* 聊天展開=一列,卡片跟堆疊同尺寸(微信原版,不放大) */
 .pgrid {
-  display: grid; grid-template-columns: var(--cell, 200px); gap: 10px;
+  display: grid; grid-template-columns: 142px; gap: 10px;
   width: fit-content;
 }
 .pgrid[hidden] { display: none; }
 .mrow.me .pgrid { margin-left: auto; }
 .pcell {
-  position: relative; width: var(--cell, 200px); aspect-ratio: 3 / 4;
+  position: relative; width: 142px; aspect-ratio: 3 / 4;
   border-radius: 14px; overflow: hidden;
   box-shadow: 0 3px 14px rgb(0 0 0 / .3);
   will-change: transform;
@@ -148,15 +148,11 @@ body {
 .album-caption { border: 0; background: none; color: inherit; cursor: pointer; padding: 2px 6px; max-width: 100%; text-align: center; }
 .album-caption strong { display: block; font-size: 12px; font-weight: 600; letter-spacing: .4px; }
 .album-caption small { display: block; margin-top: 1px; font-size: 10.5px; color: var(--muted); }
-.album { transition: opacity .25s, max-height .32s cubic-bezier(.2,.7,.3,1); max-height: 300px; }
-/* 展開時來源格位一併收合,避免留一塊空白(同排另一本仍會撐住該排) */
-.album.fly-out { opacity: 0; pointer-events: none; max-height: 0; }
+/* 展開時來源相冊整格讓位(照片替它上場),旁邊的相冊被 FLIP 推下去 */
+.album.gone { display: none; }
 
-/* 相冊展開=開源同款飛散,兩列,無盒子 */
-.album-reveal {
-  grid-column: 1 / -1; height: 0; position: relative; z-index: 5;
-  transition: height .32s cubic-bezier(.2,.7,.3,1);
-}
+/* 相冊展開=開源同款飛散,兩列,無盒子;不做高度動畫,聯動全走 transform */
+.album-reveal { grid-column: 1 / -1; position: relative; z-index: 5; }
 .fly-grid {
   position: relative;
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 18px;
@@ -184,7 +180,15 @@ body {
   transform: translateX(-50%); border: 0; padding: 0;
   background: transparent; cursor: pointer; z-index: 3;
 }
-.album-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; transition: opacity .15s; }
+.album-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; transition: opacity .2s; }
+
+/* 收起用的飛行替身:fixed+transform,不碰版面 */
+.fclone {
+  position: fixed; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 3px 14px rgb(0 0 0 / .3);
+  pointer-events: none; will-change: transform;
+}
+.fclone img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .album-actions button {
   border: 1px solid var(--line); background: transparent; color: var(--muted);
   font-size: 12px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
@@ -226,7 +230,7 @@ body {
 
 <header class="lab-head">
   <h1>PhotoStack 試衣間</h1>
-  <p>打樣稿 v2 · 2026-09-01 · 給糯糯蓋章用，沒蓋章不動正式版</p>
+  <p>打樣稿 v3 · 2026-09-01 · 給糯糯蓋章用，沒蓋章不動正式版</p>
   <nav class="tabs">
     <button class="on" data-tab="chat" type="button">聊天端</button>
     <button data-tab="album" type="button">相簿</button>
@@ -235,11 +239,11 @@ body {
 
 <section class="tab on" id="tab-chat">
   <div class="note">
-    <b>聊天端 v2（已照妳的裁定改）：</b>
+    <b>聊天端 v3（已照妳的裁定改）：</b>
     <ol>
-      <li>圖片搬出氣泡、堆疊卡獨立掛氣泡下面（v1 蓋過）</li>
-      <li>按鈕位置＝<b>A 卡片旁邊（微信款）</b>——已定案固定</li>
-      <li>展開改回<b>一列</b>（微信原版）；兩列是相冊那邊的，我 v1 搞反了ww</li>
+      <li>展開一列、<b>不放大</b>——展開後的卡片跟堆疊完全同尺寸，只有位移沒有縮放（微信原版）</li>
+      <li>照片上的 <b>1/6 角標拿掉了</b>，純照片；正式版也不會有</li>
+      <li>按鈕位置 A（卡片旁邊）定案固定</li>
     </ol>
     <b>可以直接玩：</b>堆疊卡拖著翻、快甩都會動；點卡片本體＝進大圖檢視器（這裡先用提示代替）。
   </div>
@@ -273,13 +277,13 @@ body {
 
 <section class="tab" id="tab-album">
   <div class="note">
-    <b>相簿 v2（已照妳的裁定改）：</b>
+    <b>相簿 v3（已照妳的裁定改）：</b>
     <ol>
-      <li>相冊並排、文字收底部——<b>字再縮小了一級</b>，無箭頭（定案）</li>
-      <li>展開改成<b>開源同款飛散動畫</b>，排成<b>兩列</b>（不是舊版盒子了）</li>
-      <li><b>展開</b>＝點相片底部的文字；<b>收起</b>兩個入口：①第一張照片底部的「收起」②兩列照片<b>中間的間隔區</b>整條都能點（照片很多滑到下面時就近收）</li>
+      <li>展開時<b>旁邊的相冊會整個被推下去</b>——不會孤零零留在原位了</li>
+      <li>收起重做：照片改用<b>替身飛回</b>（微信同路數），不再拖著版面一起縮，應該順很多——妳感受一下</li>
+      <li>角標拿掉、照片純淨；展開＝點相片底部文字；收起＝①第一張照片底部「收起」②兩列<b>中間間隔區</b>整條可點</li>
     </ol>
-    <b>試試 7 月那本：</b>12 張，展開很長，從中間間隔點收起最方便～
+    <b>試試 7 月那本：</b>12 張，滑到最下面點中間空隙就近收～
   </div>
   <div class="phone">
     <div class="phone-title">收藏 · 照片 · 時間</div>
@@ -548,8 +552,8 @@ document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
   const pill = area.querySelector('.pill');
   const grid = area.querySelector('.pgrid');
 
+  /* 角標(1/6)已按糯糯裁定拿掉,正式版也不開 */
   const ps = new PhotoStack(host, srcs, {
-    counter: true,
     onTap: () => toast('正式版這裡會進大圖檢視器'),
   });
 
@@ -568,14 +572,6 @@ document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
   chatAreas.push(state);
   area.style.height = collapsedHeight() + 'px';
 
-  /* 一列卡寬:留出「收起」pill 的位子,窄機自動縮 */
-  function sizeCells() {
-    const avail = area.clientWidth || 300;
-    const cell = Math.max(150, Math.min(200, avail - 70));
-    area.style.setProperty('--cell', cell + 'px');
-  }
-  sizeCells();
-  window.addEventListener('resize', sizeCells);
 
   function stageRect() { return host.firstChild.getBoundingClientRect(); }
 
@@ -649,7 +645,7 @@ document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
     area.style.height = collapsedHeight() + 'px';
 
     slot.style.opacity = '0';
-    setTimeout(() => area.classList.remove('open'), 170);
+    setTimeout(() => area.classList.remove('open'), 230);
     setTimeout(() => {
       grid.hidden = true;
       cells.forEach((cell) => { cell.style.transition = 'none'; cell.style.transform = ''; });
@@ -693,7 +689,7 @@ ALBUMS.forEach((a, idx) => {
   albumGrid.appendChild(el);
   albumEls.push(el);
   albumStacks.push(new PhotoStack(el.querySelector('.album-stack-host'), albumSrcs(a.count).slice(0, 9), {
-    width: 118, height: 158, counter: true,
+    width: 118, height: 158,
     onTap: () => toast('正式版這裡會進大圖檢視器'),
   }));
   el.querySelector('.album-caption').addEventListener('click', () => {
@@ -713,11 +709,33 @@ function flyTransform(sRect, r, rot) {
     'scale(' + (sRect.width / r.width) + ',' + (sRect.height / r.height) + ')';
 }
 
+/* 其他相冊的聯動:記舊位→改版面→從舊位平移到新位(README「下方內容聯動」簡版) */
+function flipOthers(others, before) {
+  others.forEach((o, k) => {
+    const r = o.getBoundingClientRect();
+    const dx = before[k].left - r.left, dy = before[k].top - r.top;
+    if (!dx && !dy) return;
+    o.style.transition = 'none';
+    o.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  });
+  void albumGrid.offsetHeight;
+  others.forEach((o) => {
+    o.style.transition = 'transform 300ms ' + EASE;
+    o.style.transform = '';
+  });
+}
+function unflipOthers(others) {
+  others.forEach((o) => { o.style.transition = ''; o.style.transform = ''; });
+}
+
 function openAlbumFly(idx) {
   albumBusy = true; openAlbum = idx;
   const el = albumEls[idx], a = ALBUMS[idx];
   const sRect = albumStageRect(idx);
+  const others = albumEls.filter((_, i) => i !== idx);
+  const before = others.map((o) => o.getBoundingClientRect());
   const srcs = albumSrcs(a.count);
+
   reveal.innerHTML =
     '<div class="fly-grid">' +
     srcs.map((s, i) =>
@@ -728,13 +746,14 @@ function openAlbumFly(idx) {
     '<button class="gap-strip" type="button" aria-label="收起相冊"></button>' +
     '</div>' +
     '<div class="album-actions"><button type="button">✎ 改名</button><button type="button">✕ 刪除堆疊</button></div>';
-  reveal.style.transition = 'none';
-  reveal.style.height = '0px';
-  const rowEnd = Math.min(idx | 1, albumEls.length - 1);
-  albumEls[rowEnd].insertAdjacentElement('afterend', reveal);
 
-  el.classList.add('fly-out');
+  /* 展開區直接取代該相冊那一排的位置;來源相冊讓位,旁邊的相冊被推下去 */
+  const rowStart = idx & ~1;
+  albumEls[rowStart].insertAdjacentElement('beforebegin', reveal);
+  el.classList.add('gone');
   el.querySelector('.album-caption').setAttribute('aria-expanded', 'true');
+
+  flipOthers(others, before);
 
   const cells = [...reveal.querySelectorAll('.fcell')];
   const rects = cells.map((c) => c.getBoundingClientRect());
@@ -744,13 +763,17 @@ function openAlbumFly(idx) {
     cell.style.transform = flyTransform(sRect, rects[i], Math.max(-6, Math.min(6, (i - cur) * 2.2)));
     cell.style.zIndex = 60 - i;
   });
+  const actions = reveal.querySelector('.album-actions');
+  actions.style.opacity = '0';
   void reveal.offsetHeight;
   cells.forEach((cell, i) => {
     cell.style.transition = 'transform ' + (280 + 45 * Math.min(i, 10)) + 'ms ' + EASE;
     cell.style.transform = '';
   });
-  reveal.style.transition = 'height 320ms ' + EASE;
-  reveal.style.height = reveal.scrollHeight + 'px';
+  requestAnimationFrame(() => {
+    actions.style.transition = 'opacity .2s .25s';
+    actions.style.opacity = '1';
+  });
 
   cells.forEach((c) => c.addEventListener('click', () => toast('正式版這裡會進大圖檢視器')));
   reveal.querySelector('.fcollapse').addEventListener('click', (e) => { e.stopPropagation(); closeAlbumFly(); });
@@ -758,7 +781,7 @@ function openAlbumFly(idx) {
   reveal.querySelectorAll('.album-actions button').forEach((b) => b.addEventListener('click', () => toast('打樣頁先不真的改/刪ww')));
 
   setTimeout(() => {
-    if (openAlbum === idx) reveal.style.height = 'auto';
+    unflipOthers(others);
     albumBusy = false;
   }, 280 + 45 * Math.min(cells.length - 1, 10) + 80);
 }
@@ -766,34 +789,63 @@ function openAlbumFly(idx) {
 function closeAlbumFly(done) {
   if (albumBusy || openAlbum < 0) { if (done) done(); return; }
   albumBusy = true;
-  const idx = openAlbum;
-  const el = albumEls[idx];
-  const sRect = albumStageRect(idx);
+  const idx = openAlbum, el = albumEls[idx];
   const cells = [...reveal.querySelectorAll('.fcell')];
-  const rects = cells.map((c) => c.getBoundingClientRect());
-  const cur = albumStacks[idx].index;
-  const fc = reveal.querySelector('.fcollapse');
-  if (fc) fc.style.opacity = '0';
-  const actions = reveal.querySelector('.album-actions');
-  if (actions) actions.style.opacity = '0';
-  cells.forEach((cell, i) => {
-    cell.style.transition = 'transform 300ms ' + EASE;
-    cell.style.transform = flyTransform(sRect, rects[i], Math.max(-6, Math.min(6, (i - cur) * 2.2)));
+  const cardRects = cells.map((c) => c.getBoundingClientRect());
+  const others = albumEls.filter((_, i) => i !== idx);
+  const before = others.map((o) => o.getBoundingClientRect());
+
+  /* 替身接管每張卡的視覺(fixed+transform,版面歸版面、飛行歸飛行) */
+  const clones = cells.map((cell, i) => {
+    const r = cardRects[i];
+    const cl = document.createElement('div');
+    cl.className = 'fclone';
+    cl.style.left = r.left + 'px';
+    cl.style.top = r.top + 'px';
+    cl.style.width = r.width + 'px';
+    cl.style.height = r.height + 'px';
+    cl.style.zIndex = 300 - i;
+    const im = document.createElement('img');
+    im.src = cell.querySelector('img').src;
+    im.alt = '';
+    cl.appendChild(im);
+    document.body.appendChild(cl);
+    return cl;
   });
-  reveal.style.transition = 'none';
-  reveal.style.height = reveal.scrollHeight + 'px';
-  void reveal.offsetHeight;
-  reveal.style.transition = 'height 300ms ' + EASE;
-  reveal.style.height = '0px';
+
+  /* 版面一步恢復;若堆疊落在畫面外,就近帶回來(替身是 fixed,視覺不斷) */
+  reveal.remove();
+  el.classList.remove('gone');
+  el.querySelector('.album-caption').setAttribute('aria-expanded', 'false');
+  el.scrollIntoView({ block: 'nearest' });
+  const sRect = albumStageRect(idx);
+  const stage = el.querySelector('.pstack-stage');
+  stage.style.opacity = '0';
+
+  flipOthers(others, before);
+
+  clones.forEach((cl, i) => {
+    void cl.offsetWidth;
+    const r = cardRects[i];
+    cl.style.transition = 'transform 300ms ' + EASE;
+    cl.style.transform = 'translate(' +
+      ((sRect.left + sRect.width / 2) - (r.left + r.width / 2)) + 'px,' +
+      ((sRect.top + sRect.height / 2) - (r.top + r.height / 2)) + 'px) ' +
+      'rotate(' + Math.max(-6, Math.min(6, (i - albumStacks[idx].index) * 2.2)) + 'deg) ' +
+      'scale(' + (sRect.width / r.width) + ',' + (sRect.height / r.height) + ')';
+  });
+
   setTimeout(() => {
-    el.classList.remove('fly-out');
-    el.querySelector('.album-caption').setAttribute('aria-expanded', 'false');
-  }, 150);
+    stage.style.transition = 'opacity .15s';
+    stage.style.opacity = '1';
+  }, 190);
   setTimeout(() => {
-    reveal.remove();
+    clones.forEach((cl) => cl.remove());
+    stage.style.transition = ''; stage.style.opacity = '';
+    unflipOthers(others);
     openAlbum = -1; albumBusy = false;
     if (done) done();
-  }, 340);
+  }, 330);
 }
 </script>
 </body>
