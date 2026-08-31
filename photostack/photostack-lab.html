@@ -120,23 +120,20 @@ body {
 }
 .pill:active { transform: scale(.95); }
 
-/* A 案:按鈕浮在堆疊卡旁邊(微信同款,垂直置中) */
-body.pill-side .photo-area:not(.open) .pill-slot { top: 0; height: 190px; align-items: center; }
-body.pill-side .mrow.me .photo-area:not(.open) .pill-slot { right: 152px; }
-body.pill-side .mrow.them .photo-area:not(.open) .pill-slot { left: 152px; }
-/* B 案:按鈕在堆疊卡正下方 */
-body.pill-below .photo-area:not(.open) .pill-slot { top: 198px; width: 142px; justify-content: center; }
-body.pill-below .mrow.me .photo-area:not(.open) .pill-slot { right: 0; }
-body.pill-below .mrow.them .photo-area:not(.open) .pill-slot { left: 0; }
+/* 按鈕位置定案=A:浮在堆疊卡旁邊(微信同款,垂直置中) */
+.photo-area:not(.open) .pill-slot { top: 0; height: 190px; align-items: center; }
+.mrow.me .photo-area:not(.open) .pill-slot { right: 152px; }
+.mrow.them .photo-area:not(.open) .pill-slot { left: 152px; }
 
+/* 聊天展開=一列(微信原版) */
 .pgrid {
-  display: grid; grid-template-columns: repeat(2, var(--cell, 132px)); gap: 8px;
+  display: grid; grid-template-columns: var(--cell, 200px); gap: 10px;
   width: fit-content;
 }
 .pgrid[hidden] { display: none; }
 .mrow.me .pgrid { margin-left: auto; }
 .pcell {
-  position: relative; width: var(--cell, 132px); aspect-ratio: 3 / 4;
+  position: relative; width: var(--cell, 200px); aspect-ratio: 3 / 4;
   border-radius: 14px; overflow: hidden;
   box-shadow: 0 3px 14px rgb(0 0 0 / .3);
   will-change: transform;
@@ -147,37 +144,47 @@ body.pill-below .mrow.them .photo-area:not(.open) .pill-slot { left: 0; }
 .album-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 12px; padding: 6px 2px; }
 .album { display: flex; flex-direction: column; align-items: center; gap: 9px; min-width: 0; }
 .album-stack-host { touch-action: pan-y; }
-.album-caption { border: 0; background: none; color: inherit; cursor: pointer; padding: 2px 6px; max-width: 100%; }
-.album-caption strong { display: block; font-size: 14px; font-weight: 600; letter-spacing: .5px; }
-.album-caption small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
-/* A 案:文字置中、乾淨無箭頭(點文字展開) */
-body.cap-a .album-caption { text-align: center; }
-body.cap-a .album-caption .chev { display: none; }
-/* B 案:文字置中 + 小箭頭提示可展開 */
-body.cap-b .album-caption { text-align: center; display: flex; flex-direction: column; align-items: center; }
-body.cap-b .album-caption .chev {
-  display: inline-block; margin-top: 4px; color: var(--muted);
-  transition: transform .25s; font-size: 11px;
-}
-.album.open .album-caption .chev { transform: rotate(180deg); }
-.album.open .album-caption strong { color: var(--accent); }
+/* 底部文字定案=A 乾淨無箭頭、置中、縮小(點這裡=展開) */
+.album-caption { border: 0; background: none; color: inherit; cursor: pointer; padding: 2px 6px; max-width: 100%; text-align: center; }
+.album-caption strong { display: block; font-size: 12px; font-weight: 600; letter-spacing: .4px; }
+.album-caption small { display: block; margin-top: 1px; font-size: 10.5px; color: var(--muted); }
+.album { transition: opacity .25s, max-height .32s cubic-bezier(.2,.7,.3,1); max-height: 300px; }
+/* 展開時來源格位一併收合,避免留一塊空白(同排另一本仍會撐住該排) */
+.album.fly-out { opacity: 0; pointer-events: none; max-height: 0; }
 
+/* 相冊展開=開源同款飛散,兩列,無盒子 */
 .album-reveal {
-  grid-column: 1 / -1; overflow: hidden; height: 0;
-  transition: height .3s cubic-bezier(.2,.7,.3,1);
+  grid-column: 1 / -1; height: 0; position: relative; z-index: 5;
+  transition: height .32s cubic-bezier(.2,.7,.3,1);
 }
-.album-reveal-inner {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: 16px; padding: 12px; margin: 2px 0 4px;
+.fly-grid {
+  position: relative;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 18px;
+  padding: 4px 2px 2px;
 }
-.album-reveal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.album-thumb {
+.fcell {
   position: relative; border: 0; padding: 0; cursor: zoom-in;
-  border-radius: 12px; overflow: hidden; aspect-ratio: 1;
-  background: var(--bg);
+  aspect-ratio: 3 / 4; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 3px 14px rgb(0 0 0 / .3);
+  will-change: transform; background: var(--bg);
 }
-.album-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.album-actions { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 10px; }
+.fcell img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+/* 收起入口①:第一張照片底部 */
+.fcollapse {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  border: 0; cursor: pointer;
+  background: rgb(0 0 0 / .42); color: rgb(242 240 217 / .92);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  font-size: 12px; padding: 5px 14px; border-radius: 999px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / .25); white-space: nowrap;
+}
+/* 收起入口②:兩列中間的間隔區(整條可點,照片很多時就近收) */
+.gap-strip {
+  position: absolute; left: 50%; top: 0; bottom: 0; width: 30px;
+  transform: translateX(-50%); border: 0; padding: 0;
+  background: transparent; cursor: pointer; z-index: 3;
+}
+.album-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; transition: opacity .15s; }
 .album-actions button {
   border: 1px solid var(--line); background: transparent; color: var(--muted);
   font-size: 12px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
@@ -215,11 +222,11 @@ body.cap-b .album-caption .chev {
 }
 </style>
 </head>
-<body class="pill-side cap-a">
+<body>
 
 <header class="lab-head">
   <h1>PhotoStack 試衣間</h1>
-  <p>打樣稿 v1 · 2026-09-01 · 給糯糯蓋章用，沒蓋章不動正式版</p>
+  <p>打樣稿 v2 · 2026-09-01 · 給糯糯蓋章用，沒蓋章不動正式版</p>
   <nav class="tabs">
     <button class="on" data-tab="chat" type="button">聊天端</button>
     <button data-tab="album" type="button">相簿</button>
@@ -228,20 +235,13 @@ body.cap-b .album-caption .chev {
 
 <section class="tab on" id="tab-chat">
   <div class="note">
-    <b>聊天端提案（照妳點名的三件事）：</b>
+    <b>聊天端 v2（已照妳的裁定改）：</b>
     <ol>
-      <li>圖片搬出氣泡——文字氣泡回到正常大小，堆疊卡獨立掛在氣泡下面（微信同款）</li>
-      <li>補上「展開 / 收起」按鈕，位置有 A / B 兩案（上面切換看）</li>
-      <li>點「展開」後排成<b>兩列</b>（開源版是一列），「收起」飛回堆疊</li>
+      <li>圖片搬出氣泡、堆疊卡獨立掛氣泡下面（v1 蓋過）</li>
+      <li>按鈕位置＝<b>A 卡片旁邊（微信款）</b>——已定案固定</li>
+      <li>展開改回<b>一列</b>（微信原版）；兩列是相冊那邊的，我 v1 搞反了ww</li>
     </ol>
     <b>可以直接玩：</b>堆疊卡拖著翻、快甩都會動；點卡片本體＝進大圖檢視器（這裡先用提示代替）。
-  </div>
-  <div class="ab">
-    <span>展開按鈕位置</span>
-    <div class="seg" id="pillmode">
-      <button class="on" data-mode="pill-side" type="button">A 卡片旁邊（微信款）</button>
-      <button data-mode="pill-below" type="button">B 卡片下方</button>
-    </div>
   </div>
   <div class="phone">
     <div class="phone-title">Butterfly Cottage</div>
@@ -273,19 +273,13 @@ body.cap-b .album-caption .chev {
 
 <section class="tab" id="tab-album">
   <div class="note">
-    <b>相簿提案（照妳點名的兩件事）：</b>
+    <b>相簿 v2（已照妳的裁定改）：</b>
     <ol>
-      <li>相冊<b>並排</b>——一排兩本，像手機相簿；不再是「堆疊在左、字霸佔整排」</li>
-      <li>說明文字收到<b>卡片底部</b>（月份／張數小小的，不佔空間）</li>
+      <li>相冊並排、文字收底部——<b>字再縮小了一級</b>，無箭頭（定案）</li>
+      <li>展開改成<b>開源同款飛散動畫</b>，排成<b>兩列</b>（不是舊版盒子了）</li>
+      <li><b>展開</b>＝點相片底部的文字；<b>收起</b>兩個入口：①第一張照片底部的「收起」②兩列照片<b>中間的間隔區</b>整條都能點（照片很多滑到下面時就近收）</li>
     </ol>
-    <b>操作：</b>點<b>文字</b>展開整排寬的照片網格（兩列），點<b>卡片</b>直接翻頁／看大圖。改名、刪除按鈕收在展開區裡。
-  </div>
-  <div class="ab">
-    <span>底部文字樣式</span>
-    <div class="seg" id="capmode">
-      <button class="on" data-mode="cap-a" type="button">A 乾淨無箭頭</button>
-      <button data-mode="cap-b" type="button">B 帶展開小箭頭</button>
-    </div>
+    <b>試試 7 月那本：</b>12 張，展開很長，從中間間隔點收起最方便～
   </div>
   <div class="phone">
     <div class="phone-title">收藏 · 照片 · 時間</div>
@@ -532,32 +526,12 @@ document.querySelectorAll('.tabs button').forEach((b) => {
   });
 });
 
-/* A/B 切換 */
-function bindSeg(id, classes) {
-  const seg = document.getElementById(id);
-  seg.querySelectorAll('button').forEach((b) => {
-    b.addEventListener('click', () => {
-      seg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
-      classes.forEach((c) => document.body.classList.remove(c));
-      document.body.classList.add(b.dataset.mode);
-      relayoutCollapsedAreas();
-    });
-  });
-}
-bindSeg('pillmode', ['pill-side', 'pill-below']);
-bindSeg('capmode', ['cap-a', 'cap-b']);
-
-/* ── 聊天端:堆疊 + 展開/收起(兩列)── */
+/* ── 聊天端:堆疊 + 展開/收起(一列,微信原版;按鈕 A 定案)── */
 const STACK_H = 190;
 const EASE = 'cubic-bezier(.2,.7,.3,1)';
 const chatAreas = [];
 
-function collapsedHeight() {
-  return document.body.classList.contains('pill-below') ? STACK_H + 44 : STACK_H;
-}
-function relayoutCollapsedAreas() {
-  chatAreas.forEach((a) => { if (!a.open) a.area.style.height = collapsedHeight() + 'px'; });
-}
+function collapsedHeight() { return STACK_H; }
 
 document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
   const n = Number(area.dataset.stack);
@@ -594,10 +568,10 @@ document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
   chatAreas.push(state);
   area.style.height = collapsedHeight() + 'px';
 
-  /* 兩列卡寬:留出「收起」pill 的位子,窄機自動縮 */
+  /* 一列卡寬:留出「收起」pill 的位子,窄機自動縮 */
   function sizeCells() {
     const avail = area.clientWidth || 300;
-    const cell = Math.max(96, Math.min(132, Math.floor((avail - 70 - 8) / 2)));
+    const cell = Math.max(150, Math.min(200, avail - 70));
     area.style.setProperty('--cell', cell + 'px');
   }
   sizeCells();
@@ -644,8 +618,7 @@ document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
         slot.style.right = (ar.right - r0.left + 8) + 'px';
         slot.style.left = 'auto';
       } else {
-        const r1 = grid.children[Math.min(1, grid.children.length - 1)].getBoundingClientRect();
-        slot.style.left = (r1.right - ar.left + 8) + 'px';
+        slot.style.left = (r0.right - ar.left + 8) + 'px';
         slot.style.right = 'auto';
       }
       pill.textContent = '收起';
@@ -693,17 +666,22 @@ document.querySelectorAll('.photo-area[data-stack]').forEach((area) => {
   });
 });
 
-/* ── 相簿:並排 + 底部文字 + 展開網格 ── */
+/* ── 相簿:並排 + 底部小字 + 開源同款飛散展開(兩列)── */
 const ALBUMS = [
   { name: '2026 年 9 月', count: 2 },
   { name: '2026 年 8 月', count: 4 },
-  { name: '2026 年 7 月', count: 6 },
+  { name: '2026 年 7 月', count: 12 },
 ];
 const albumGrid = document.getElementById('albumGrid');
 const albumEls = [];
+const albumStacks = [];
 const reveal = document.createElement('div');
 reveal.className = 'album-reveal';
-let openAlbum = -1;
+let openAlbum = -1, albumBusy = false;
+
+function albumSrcs(count) {
+  return Array.from({ length: count }, (_, i) => CARDS[i % CARDS.length]);
+}
 
 ALBUMS.forEach((a, idx) => {
   const el = document.createElement('article');
@@ -711,53 +689,111 @@ ALBUMS.forEach((a, idx) => {
   el.innerHTML =
     '<div class="album-stack-host"></div>' +
     '<button class="album-caption" type="button" aria-expanded="false">' +
-    '<strong>' + a.name + '</strong><small>' + a.count + ' 張</small>' +
-    '<span class="chev" aria-hidden="true">▼</span></button>';
+    '<strong>' + a.name + '</strong><small>' + a.count + ' 張</small></button>';
   albumGrid.appendChild(el);
   albumEls.push(el);
-  const srcs = CARDS.slice(0, a.count);
-  new PhotoStack(el.querySelector('.album-stack-host'), srcs, {
+  albumStacks.push(new PhotoStack(el.querySelector('.album-stack-host'), albumSrcs(a.count).slice(0, 9), {
     width: 118, height: 158, counter: true,
     onTap: () => toast('正式版這裡會進大圖檢視器'),
+  }));
+  el.querySelector('.album-caption').addEventListener('click', () => {
+    if (albumBusy || openAlbum === idx) return;
+    if (openAlbum >= 0) closeAlbumFly(() => openAlbumFly(idx));
+    else openAlbumFly(idx);
   });
-  el.querySelector('.album-caption').addEventListener('click', () => toggleAlbum(idx));
 });
 
-function closeReveal(done) {
-  reveal.style.height = reveal.scrollHeight + 'px';
-  void reveal.offsetHeight;
-  reveal.style.height = '0px';
-  setTimeout(() => { reveal.remove(); if (done) done(); }, 310);
+function albumStageRect(idx) {
+  return albumEls[idx].querySelector('.pstack-stage').getBoundingClientRect();
+}
+function flyTransform(sRect, r, rot) {
+  const dx = (sRect.left + sRect.width / 2) - (r.left + r.width / 2);
+  const dy = (sRect.top + sRect.height / 2) - (r.top + r.height / 2);
+  return 'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg) ' +
+    'scale(' + (sRect.width / r.width) + ',' + (sRect.height / r.height) + ')';
 }
 
-function toggleAlbum(idx) {
-  const wasOpen = openAlbum;
-  albumEls.forEach((el, i) => {
-    el.classList.toggle('open', i === idx && wasOpen !== idx);
-    el.querySelector('.album-caption').setAttribute('aria-expanded', String(i === idx && wasOpen !== idx));
-  });
-  if (wasOpen === idx) { openAlbum = -1; closeReveal(); return; }
+function openAlbumFly(idx) {
+  albumBusy = true; openAlbum = idx;
+  const el = albumEls[idx], a = ALBUMS[idx];
+  const sRect = albumStageRect(idx);
+  const srcs = albumSrcs(a.count);
+  reveal.innerHTML =
+    '<div class="fly-grid">' +
+    srcs.map((s, i) =>
+      '<button class="fcell" type="button" aria-label="放大檢視照片 ' + (i + 1) + '">' +
+      '<img alt="" src="' + s + '">' +
+      (i === 0 ? '<span class="fcollapse">收起</span>' : '') +
+      '</button>').join('') +
+    '<button class="gap-strip" type="button" aria-label="收起相冊"></button>' +
+    '</div>' +
+    '<div class="album-actions"><button type="button">✎ 改名</button><button type="button">✕ 刪除堆疊</button></div>';
+  reveal.style.transition = 'none';
+  reveal.style.height = '0px';
+  const rowEnd = Math.min(idx | 1, albumEls.length - 1);
+  albumEls[rowEnd].insertAdjacentElement('afterend', reveal);
 
-  const show = () => {
-    const a = ALBUMS[idx];
-    reveal.innerHTML =
-      '<div class="album-reveal-inner">' +
-      '<div class="album-actions"><button type="button">✎ 改名</button><button type="button">✕ 刪除堆疊</button></div>' +
-      '<div class="album-reveal-grid">' +
-      CARDS.slice(0, a.count).map((s, i) => '<button class="album-thumb" type="button"><img alt="照片 ' + (i + 1) + '" src="' + s + '"></button>').join('') +
-      '</div></div>';
-    reveal.style.height = '0px';
-    /* 插在該列列尾之後,展開區佔整排寬,下一排相冊被推下去 */
-    const rowEnd = Math.min(idx | 1, albumEls.length - 1);
-    albumEls[rowEnd].insertAdjacentElement('afterend', reveal);
-    reveal.querySelectorAll('.album-thumb').forEach((b) => b.addEventListener('click', () => toast('正式版這裡會進大圖檢視器')));
-    reveal.querySelectorAll('.album-actions button').forEach((b) => b.addEventListener('click', () => toast('打樣頁先不真的改/刪ww')));
-    void reveal.offsetHeight;
-    reveal.style.height = reveal.scrollHeight + 'px';
-    openAlbum = idx;
-    setTimeout(() => { if (openAlbum === idx) reveal.style.height = 'auto'; }, 320);
-  };
-  if (wasOpen >= 0) closeReveal(show); else show();
+  el.classList.add('fly-out');
+  el.querySelector('.album-caption').setAttribute('aria-expanded', 'true');
+
+  const cells = [...reveal.querySelectorAll('.fcell')];
+  const rects = cells.map((c) => c.getBoundingClientRect());
+  const cur = albumStacks[idx].index;
+  cells.forEach((cell, i) => {
+    cell.style.transition = 'none';
+    cell.style.transform = flyTransform(sRect, rects[i], Math.max(-6, Math.min(6, (i - cur) * 2.2)));
+    cell.style.zIndex = 60 - i;
+  });
+  void reveal.offsetHeight;
+  cells.forEach((cell, i) => {
+    cell.style.transition = 'transform ' + (280 + 45 * Math.min(i, 10)) + 'ms ' + EASE;
+    cell.style.transform = '';
+  });
+  reveal.style.transition = 'height 320ms ' + EASE;
+  reveal.style.height = reveal.scrollHeight + 'px';
+
+  cells.forEach((c) => c.addEventListener('click', () => toast('正式版這裡會進大圖檢視器')));
+  reveal.querySelector('.fcollapse').addEventListener('click', (e) => { e.stopPropagation(); closeAlbumFly(); });
+  reveal.querySelector('.gap-strip').addEventListener('click', () => closeAlbumFly());
+  reveal.querySelectorAll('.album-actions button').forEach((b) => b.addEventListener('click', () => toast('打樣頁先不真的改/刪ww')));
+
+  setTimeout(() => {
+    if (openAlbum === idx) reveal.style.height = 'auto';
+    albumBusy = false;
+  }, 280 + 45 * Math.min(cells.length - 1, 10) + 80);
+}
+
+function closeAlbumFly(done) {
+  if (albumBusy || openAlbum < 0) { if (done) done(); return; }
+  albumBusy = true;
+  const idx = openAlbum;
+  const el = albumEls[idx];
+  const sRect = albumStageRect(idx);
+  const cells = [...reveal.querySelectorAll('.fcell')];
+  const rects = cells.map((c) => c.getBoundingClientRect());
+  const cur = albumStacks[idx].index;
+  const fc = reveal.querySelector('.fcollapse');
+  if (fc) fc.style.opacity = '0';
+  const actions = reveal.querySelector('.album-actions');
+  if (actions) actions.style.opacity = '0';
+  cells.forEach((cell, i) => {
+    cell.style.transition = 'transform 300ms ' + EASE;
+    cell.style.transform = flyTransform(sRect, rects[i], Math.max(-6, Math.min(6, (i - cur) * 2.2)));
+  });
+  reveal.style.transition = 'none';
+  reveal.style.height = reveal.scrollHeight + 'px';
+  void reveal.offsetHeight;
+  reveal.style.transition = 'height 300ms ' + EASE;
+  reveal.style.height = '0px';
+  setTimeout(() => {
+    el.classList.remove('fly-out');
+    el.querySelector('.album-caption').setAttribute('aria-expanded', 'false');
+  }, 150);
+  setTimeout(() => {
+    reveal.remove();
+    openAlbum = -1; albumBusy = false;
+    if (done) done();
+  }, 340);
 }
 </script>
 </body>
