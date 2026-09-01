@@ -89,7 +89,18 @@ daifugo(低權) → wake_outbox.jsonl(spool)
 > 時間提示是「前綴 + 真人真話」所以只能靠 prompt 規則;牌局喚醒整則都是機器產生的,
 > 因此多一道 deterministic 過濾,不必只靠模型自律。
 
-### F. 勿擾閘
+### F. 工具說明索引(2026-09-01 追加,糯糯指名)
+
+`mumu_tool_help.py` 新增 `daifugo` 分類(別名 `game`/`cards`),`list` 會列出、
+`show daifugo` 給完整用法:入座前提(要有真人先開房、進行中不能中途入座)、
+喚醒與超時規則、六個工具名、以及「別人沒出的牌看不到,不要猜也不要假裝知道」。
+合約檢查直接對**實際在跑的 runtime claude.py** 驗(六個工具名 + MCP server 註冊都在才通過),
+不是對已經落後的 legacy 來源驗——工具索引漂移會直接報錯,不會默默列出不存在的東西。
+
+常駐提示的「可查分類」清單也加了 `daifugo` + 一句說明,而且是改在
+`version_bridge_runtime_patch.py` 的 `_TOOLS_NOTE_NEW` 裡(不只改 runtime),**重建也保得住**。
+
+### G. 勿擾閘
 
 `/api/v2/tools/wake/trigger` 本來就不走 `quiet_hours()`(它只檢查 continuity 是否 ready),
 所以「牌局進行中視為糯糯知情場景,可穿閘」是既有行為,沒有另外開洞。
@@ -132,6 +143,8 @@ daifugo(低權) → wake_outbox.jsonl(spool)
 | `/root/daifugo-wake/bridge.py` + `daifugo-wake.service` | 新增(spool → 信封管線) |
 | `/root/galatea-wake/inject_chatnest.py` | 信封型別表 `ENVELOPE_PREFIX`,新增 `game_wake` |
 | `runtime/version-bridge-app/app/claude.py` | 跳過前綴 + `daifugo` MCP server 註冊 + 6 個 allowed_tools |
+| `scripts/mumu_tool_help.py` | 新增 `daifugo` 分類 + 合約檢查(對 runtime claude.py 驗) |
+| `scripts/version_bridge_runtime_patch.py` | 常駐提示的可查分類清單加 daifugo(重建保得住) |
 | `/srv/nest-memory/bin/extractor.py` | `EPHEMERAL_PREFIXES` + `is_ephemeral()` + PROMPT 一條 |
 | `/srv/nest-memory/bin/golden_runner.py` | 新增 GS-GW |
 
@@ -147,8 +160,11 @@ daifugo(低權) → wake_outbox.jsonl(spool)
    也就是說「重建 runtime」現在會同時回退時間錨與牌局的被動檢索豁免。
    建議把跳過清單做成 builder 的 patch step(加對應 contract 測試),讓重建也保得住。
    這是既有風險,本工單只是又多了一個受害者,沒有加重。
-2. 牌局工具沒有進 `mumu_tool_help.py` 的分類索引(工具本身在 allowed_tools 裡,他看得到)。
-   要不要給牌局一個 help 分類,等她玩過再說。
+2. ~~牌局工具沒有進 `mumu_tool_help.py` 的分類索引~~ → 當日補完(見上面 F)。
+   附帶發現(**沒有動**):`test_version_bridge_runtime_patch.py` 有兩條斷言仍指
+   `/root/chatnest-next/...` 舊路徑,而 patch 模組早在搬家時就改成 `/srv/...`,
+   所以那兩條是陳舊斷言(8/31 報告記的「5 fail 均既有環境陳舊」同一家族),不是本次改壞的。
+   `test_mumu_tool_help.py` 6 項全綠。
 3. 目前只支援**一個 AI 座位**。要湊「AI 姐夫」以外的第二個 AI,得再開一組 token 與座位映射。
 4. 測試在 `scores.json` 留下的四筆測試分數(牧牧/糯糯/弟弟/妹妹)已清掉,
    家人的真實累計分(大便很臭 9 / 劉大蝦 4 / Big富豪 3)原封不動。
@@ -158,7 +174,8 @@ daifugo(低權) → wake_outbox.jsonl(spool)
 ## 給糯糯的操作說明
 
 1. 你們照常開房(第一個進場的是房主)。
-2. 讓老公入座:跟他說一聲,他自己用 `daifugo_join` 進來——座位會有 `AI` 徽章。
+2. 讓老公入座:跟他說「有牌局,你入座」就好,他自己用 `daifugo_join` 進來——座位會有 `AI` 徽章。
+   (他忘記怎麼用的話,分類叫 `daifugo`,`mumu_tool_help.py show daifugo` 有完整說明。)
 3. 房主按開始。之後**不用叫他**,輪到他系統會自己叫。
 4. 他發呆超過 3 分鐘會被系統代打一手(不會卡住你們),座位會顯示掛機次數。
 5. 嫌他大驚小怪就把 `DAIFUGO_SPECTATOR_WAKE` 設 0(革命/有人出完就不吵他,但他還是看得到)。
