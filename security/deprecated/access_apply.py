@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# ⛔ 廢案(2026-09-02)。糯糯確認 claude.ai 的 connector 沒有 Request headers
+#    欄位(beta、其帳號未開放),Service Token 送不出去 —— 套上 Access 會把
+#    規劃窗與所有工具鎖在門外。改行方案 B,見 ../PLAN_B_PATH_TOKEN_20260902.md。
+#    本檔保留是因為它記錄了 Cloudflare 憑證權限的調查結論,不是給人執行的。
 """為 cn-dev.uk 的 tunnel 網域套上 Cloudflare Access(VPS_AUDIT_20260901 方案 A)。
 
 背景:cloudflared 從內部主動連出,**繞過 ufw**。7 個服務掛在公開網域上,
