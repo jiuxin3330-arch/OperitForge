@@ -1,0 +1,87 @@
+--- /srv/chatnest-next/frontend/src/App.tsx.bak-ticketh-1788318531	2026-09-01 06:54:48.512430930 +0800
++++ /srv/chatnest-next/frontend/src/App.tsx	2026-09-02 11:09:10.047780059 +0800
+@@ -7367,6 +7367,8 @@
+   const [data, setData] = useState<GalleryData>({ albums: [], photos: [], usage_bytes: 0, soft_cap_bytes: 1, automatic_paused: false });
+   const [notes, setNotes] = useState<DashboardNote[]>([]);
+   const [previewPhoto, setPreviewPhoto] = useState<GalleryPhoto | null>(null);
++  const [deleteArming, setDeleteArming] = useState(false);
++  const [deleteBusy, setDeleteBusy] = useState(false);
+   const [photoGroupMode, setPhotoGroupMode] = useState<GalleryGroupingMode>("time");
+   const [openPhotoStackId, setOpenPhotoStackId] = useState<string | null>(null);
+   const [membershipPhoto, setMembershipPhoto] = useState<GalleryPhoto | null>(null);
+@@ -7413,6 +7415,28 @@
+   }, []);
+ 
+   useEffect(() => { load().catch((error) => onStatus(error instanceof Error ? error.message : "收藏讀取失敗")); }, [load, onStatus]);
++
++  // 換一張照片就把刪除確認收起來,免得上一張按到一半的狀態黏在下一張身上。
++  useEffect(() => { setDeleteArming(false); }, [previewPhoto?.id]);
++
++  // TICKET-H:相簿原本只在掛載時抓一次,StackChan 拍的新照片要殺掉 app 重開才看得到。
++  // 照 2026-08-18 聊天視圖那次的做法(回前台就重載),再加一個「看得見時輪詢」——
++  // 因為驗收情境是「拍一張,什麼都不做,盯著相簿看它出現」,那時 visibilitychange
++  // 不會觸發。後端對帳是 30 秒一輪,所以這裡用 20 秒,最壞情況約 50 秒會出現。
++  useEffect(() => {
++    const refresh = () => {
++      if (document.visibilityState !== "visible") return;
++      void load().catch(() => undefined);
++    };
++    const timer = window.setInterval(refresh, 20000);
++    document.addEventListener("visibilitychange", refresh);
++    window.addEventListener("pageshow", refresh);
++    return () => {
++      window.clearInterval(timer);
++      document.removeEventListener("visibilitychange", refresh);
++      window.removeEventListener("pageshow", refresh);
++    };
++  }, [load]);
+   useEffect(() => {
+     let cancelled = false;
+     void readCollectionNoteDraft().then((record) => { if (!cancelled) setCollectionNoteDraftPrompt(record?.payload || null); }).catch(() => undefined);
+@@ -7466,6 +7490,20 @@
+     } catch (error) { onStatus(error instanceof Error ? error.message : "帶回聊天失敗"); }
+   }
+ 
++  // TICKET-H R1:刪除 StackChan 照片。這會連 /srv/mumu-server/photos 底下的
++  // 實體檔一起刪掉,不是只從相簿移除,所以要先展開確認條(糯糯 9/2 選的 B 案)。
++  async function removeStackchanPhoto(photo: GalleryPhoto) {
++    setDeleteBusy(true);
++    try {
++      await api(`/api/v2/gallery/photos/${photo.id}`, { method: "DELETE" });
++      setDeleteArming(false);
++      setPreviewPhoto(null);
++      await load();
++      onStatus("已刪除照片");
++    } catch (error) { onStatus(error instanceof Error ? error.message : "刪除失敗"); }
++    finally { setDeleteBusy(false); }
++  }
++
+   async function togglePermanent(photo: GalleryPhoto) {
+     try {
+       const permanent = !photo.permanent;
+@@ -7714,11 +7752,21 @@
+             <header><div><strong>{previewPhoto.note || previewPhoto.original_name}</strong><small>{gallerySourceLabel(previewPhoto.source)} · {previewPhoto.permanent ? "永久收藏" : "暫存"}{previewAlbumNames.length ? ` · ${previewAlbumNames.join("、")}` : ""}</small></div><button className="icon-action" onClick={() => setPreviewPhoto(null)} aria-label="關閉照片檢視"><UiIcon name="close" /></button></header>
+             <div className="collection-lightbox-image"><img src={`/api/v2/gallery/photos/${previewPhoto.id}/image`} alt={previewPhoto.note || previewPhoto.original_name} /></div>
+             <div className="photo-actions">
+-              {previewPhoto.source.kind === "chat" && previewPhoto.source.available && <button className="collection-photo-action" onClick={() => { const id = previewPhoto.id; setPreviewPhoto(null); void onNavigateSource(id); }}><UiIcon name="share" /><span>回原訊息</span></button>}
+-              <button className="collection-photo-action" onClick={() => void togglePermanent(previewPhoto)}><UiIcon name={previewPhoto.permanent ? "star-filled" : "star"} /><span>{previewPhoto.permanent ? "改為暫存" : "永久收藏"}</span></button>
+-              <button className="collection-photo-action" onClick={() => openMembership(previewPhoto)}><UiIcon name="folder" /><span>加入堆疊</span></button>
+-              <button className="collection-photo-action" disabled={!conversationId} onClick={() => void replay(previewPhoto.id)}><UiIcon name="chat" /><span>帶回聊天</span></button>
++              {previewPhoto.source.kind === "stackchan" && <button className="collection-photo-action collection-photo-action-danger" aria-label="刪除照片" title="刪除" disabled={deleteBusy} onClick={() => setDeleteArming((armed) => !armed)}><UiIcon name="trash" /></button>}
++              {previewPhoto.source.kind === "chat" && previewPhoto.source.available && <button className="collection-photo-action" aria-label="回原訊息" title="回原訊息" onClick={() => { const id = previewPhoto.id; setPreviewPhoto(null); void onNavigateSource(id); }}><UiIcon name="share" /></button>}
++              <button className="collection-photo-action" aria-label={previewPhoto.permanent ? "改為暫存" : "永久收藏"} title={previewPhoto.permanent ? "改為暫存" : "永久收藏"} onClick={() => void togglePermanent(previewPhoto)}><UiIcon name={previewPhoto.permanent ? "star-filled" : "star"} /></button>
++              <button className="collection-photo-action" aria-label="加入堆疊" title="加入堆疊" onClick={() => openMembership(previewPhoto)}><UiIcon name="folder" /></button>
++              <button className="collection-photo-action" aria-label="帶回聊天" title="帶回聊天" disabled={!conversationId} onClick={() => void replay(previewPhoto.id)}><UiIcon name="chat" /></button>
+             </div>
++            {previewPhoto.source.kind === "stackchan" && deleteArming && (
++              <div className="photo-delete-confirm">
++                <p>刪掉之後，<b>StackChan 上的檔案也會一起消失</b>，沒辦法復原。</p>
++                <div>
++                  <button className="collection-photo-action photo-delete-choice" disabled={deleteBusy} onClick={() => setDeleteArming(false)}>取消</button>
++                  <button className="collection-photo-action photo-delete-choice collection-photo-action-danger" disabled={deleteBusy} onClick={() => void removeStackchanPhoto(previewPhoto)}>確定刪除</button>
++                </div>
++              </div>
++            )}
+           </section>
+         </div>,
+         document.body,

@@ -1,0 +1,29 @@
+--- /srv/chatnest-next/frontend/src/styles.css.bak-ticketh-1788318562	2026-09-01 06:54:48.513430936 +0800
++++ /srv/chatnest-next/frontend/src/styles.css	2026-09-02 11:09:22.931842752 +0800
+@@ -10928,6 +10928,26 @@
+   font-size: .68rem;
+ }
+ .collection-photo-action svg { width: 17px; height: 17px; flex: none; }
++/* TICKET-H R1(糯糯 9/2 裁定):動作鍵只留 icon 不要文字,刪除鍵放最左。
++   拿掉文字後改用正方形觸控面積,名稱走 aria-label / title。 */
++.collection-photo-action:not(.photo-delete-choice) {
++  min-width: 46px;
++  padding-inline: 13px;
++}
++.collection-photo-action svg { width: 19px; height: 19px; }
++.collection-photo-action-danger { color: var(--nest-danger); }
++.photo-delete-choice { padding-inline: 18px; font-size: .74rem; }
++.photo-delete-confirm {
++  display: grid;
++  gap: 9px;
++  padding: 12px 13px;
++  border-radius: 16px;
++  background: var(--nest-surface);
++  box-shadow: inset 0 0 0 1px var(--nest-line);
++}
++.photo-delete-confirm p { margin: 0; font-size: .82rem; color: var(--nest-muted); }
++.photo-delete-confirm p b { color: var(--nest-text); font-weight: 600; }
++.photo-delete-confirm > div { display: flex; gap: 8px; }
+ .collection-photo-action:is(:focus-visible, :active):not(:disabled),
+ .collection-lightbox > section > header .icon-action:is(:focus-visible, :active) {
+   outline: 0;

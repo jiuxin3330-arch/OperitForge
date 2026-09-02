@@ -1,0 +1,4 @@
+sw 版號一起改(合約測試會擋):
+  public/sw.js       SHELL_CACHE = "chatnest-next-shell-v159"
+  src/main.tsx       register("/sw.js?v=159")
+後端對帳間隔:backend/app/main.py  STACKCHAN_SYNC_SECONDS = 30
