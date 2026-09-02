@@ -1,8 +1,8 @@
-"""TICKET-I A 段:build 腳本的漂移護欄。
+"""TICKET-I:build 腳本的漂移護欄(A 段)與回填驗收(B 段)。
 
 runtime 曾經領先 patch 源碼而沒人發現,直到有人打算重 build。那次沒炸,
 是因為施工者先 build 到臨時目錄比對 —— 運氣加紀律,不是設計。
-這裡鎖住「腳本自己會做那個比對」。
+前半鎖住「腳本自己會做那個比對」,後半鎖住「回填過的檔案真的重現得出來」。
 """
 from __future__ import annotations
 
@@ -144,3 +144,84 @@ def test_build_refuses_to_overwrite_a_drifted_runtime(tmp_path):
     )
     assert forced.returncode == 0, forced.stderr
     assert not hotfix.is_file(), "明講要覆蓋了卻沒覆蓋"
+
+
+RUNTIME = Path("/root/chatnest-next/runtime/version-bridge-app")
+
+# TICKET-I B2(9/15 之後):人格敏感區,這一輪不碰。
+B2_PENDING = {"app/claude.py", "app/easter_egg.py", "PERSONA.md"}
+
+
+def _sentinel_insensitive(text: str) -> tuple[str, ...]:
+    """把檔尾的 patch 哨兵抽出來排序,其餘照原樣。
+
+    哨兵是註解,順序不影響行為。runtime 現在的排列是「build 一次、之後熱修兩次」
+    的歷史痕跡;build 產出的順序才是規範的。兩者要真正對齊,得等 B 全部收工後
+    跑一次授權重 build —— 在那之前這裡不該因為註解的排列而紅。
+    """
+    lines = text.splitlines()
+    body = [ln for ln in lines if not ln.startswith("# CHATNEST_VERSION_BRIDGE")]
+    sentinels = sorted(ln for ln in lines if ln.startswith("# CHATNEST_VERSION_BRIDGE"))
+    return tuple(body), tuple(sentinels)
+
+
+@pytest.mark.skipif(
+    not (RUNTIME / "app" / "main.py").is_file()
+    or not Path("/root/chatnest/full-stack/app/main.py").is_file(),
+    reason="需要 legacy 源碼與現行 runtime 才能驗收回填",
+)
+def test_b1_backports_leave_only_the_b2_files_drifted(tmp_path):
+    """B1 驗收:回填過的檔案,build 產物要跟 runtime 一模一樣。
+
+    這條會隨 B2 收工而自然收斂 —— 到時候剩餘漂移是空的,斷言仍然成立。
+    """
+    target = tmp_path / "runtime"
+    built = subprocess.run(
+        [sys.executable, str(SCRIPTS / "build_version_bridge_runtime.py"),
+         "--target", str(target)],
+        capture_output=True, text=True,
+    )
+    assert built.returncode == 0, built.stderr
+
+    # 回填過的三個檔:逐字相同
+    for name in ("app/usage.py", "app/memory_bridge.py", "app/autonomy_tool.py"):
+        assert (target / name).read_bytes() == (RUNTIME / name).read_bytes(), (
+            f"{name} 回填後仍與 runtime 不同"
+        )
+
+    # main.py:實質內容相同,只容許哨兵排列不同
+    assert _sentinel_insensitive(
+        (target / "app" / "main.py").read_text(encoding="utf-8")
+    ) == _sentinel_insensitive(
+        (RUNTIME / "app" / "main.py").read_text(encoding="utf-8")
+    )
+
+    # 其餘漂移不得超出 B2 待辦
+    drifted, _ = _drift_report(target, RUNTIME)
+    names = {line.strip().split(" ——")[0] for line in drifted}
+    assert names <= B2_PENDING | {"app/main.py"}, f"冒出 B2 以外的漂移:{names}"
+
+
+@pytest.mark.skipif(
+    not Path("/root/chatnest-next/bridge-extras").is_dir(),
+    reason="需要 bridge-extras 目錄",
+)
+def test_bridge_extras_reach_the_build_and_get_recorded(tmp_path):
+    """autonomy_tool.py 只屬於 bridge。裁定(乙):放程式碼、build 複製、manifest 記 sha。"""
+    target = tmp_path / "runtime"
+    built = subprocess.run(
+        [sys.executable, str(SCRIPTS / "build_version_bridge_runtime.py"),
+         "--target", str(target)],
+        capture_output=True, text=True,
+    )
+    assert built.returncode == 0, built.stderr
+
+    extras = sorted(p.name for p in Path("/root/chatnest-next/bridge-extras").glob("*.py"))
+    assert "autonomy_tool.py" in extras
+
+    manifest = json.loads((target / "runtime-manifest.json").read_text(encoding="utf-8"))
+    recorded = manifest.get("bridge_extras") or {}
+    for name in extras:
+        copied = target / "app" / name
+        assert copied.is_file(), f"{name} 沒有進到 build 產物"
+        assert recorded.get(name), f"manifest 沒有記 {name} 的 sha"
