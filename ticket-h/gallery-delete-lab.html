@@ -1,0 +1,302 @@
+<title>相簿刪除鍵打樣</title>
+<style>
+  /* 這份打樣沿用 ChatNest 既有的設計語彙(styles.css 的 token 與
+     .collection-photo-action / .collection-lightbox 尺寸),不另立風格。
+     只有「刪除」這一個按鈕是新的。 */
+  :root {
+    --nest-bg: #fbfaef;
+    --nest-surface: #f4f2e2;
+    --nest-surface-strong: #fdfcf5;
+    --nest-text: #272c28;
+    --nest-muted: #6e7368;
+    --nest-line: rgb(39 44 40 / 0.14);
+    --nest-teal: #55a9b9;
+    --nest-accent: var(--nest-teal);
+    --nest-danger: #b4574a;
+    --nest-shadow: rgb(157 152 116 / 0.30);
+    --nest-control-highlight: color-mix(in srgb, var(--nest-bg), var(--nest-accent) 7%);
+    --paper: #efeddf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --nest-bg: #272c28;
+      --nest-surface: #2f362f;
+      --nest-surface-strong: #333b33;
+      --nest-text: #f2f0d9;
+      --nest-muted: #a3a995;
+      --nest-line: rgb(242 240 217 / 0.16);
+      --nest-danger: #cf7d70;
+      --nest-shadow: rgb(0 0 0 / 0.55);
+      --nest-control-highlight: color-mix(in srgb, var(--nest-bg), #fff 8%);
+      --paper: #1e221f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --nest-bg: #272c28;
+    --nest-surface: #2f362f;
+    --nest-surface-strong: #333b33;
+    --nest-text: #f2f0d9;
+    --nest-muted: #a3a995;
+    --nest-line: rgb(242 240 217 / 0.16);
+    --nest-danger: #cf7d70;
+    --nest-shadow: rgb(0 0 0 / 0.55);
+    --nest-control-highlight: color-mix(in srgb, var(--nest-bg), #fff 8%);
+    --paper: #1e221f;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 28px 18px 64px;
+    background: var(--paper);
+    color: var(--nest-text);
+    font-family: Inter, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    line-height: 1.62;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 30px; }
+
+  .lede { display: grid; gap: 10px; }
+  .lede h1 { margin: 0; font-size: 1.42rem; font-weight: 650; letter-spacing: .01em; text-wrap: balance; }
+  .lede p { margin: 0; max-width: 62ch; color: var(--nest-muted); font-size: .93rem; }
+  .lede .tag {
+    justify-self: start; padding: 3px 10px; border-radius: 999px;
+    background: color-mix(in srgb, var(--nest-accent), transparent 86%);
+    color: color-mix(in srgb, var(--nest-accent), var(--nest-text) 42%);
+    font-size: .7rem; letter-spacing: .09em; text-transform: uppercase;
+  }
+
+  .option { display: grid; gap: 12px; }
+  .option > h2 {
+    margin: 0; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--nest-muted);
+    display: flex; align-items: baseline; gap: 9px;
+  }
+  .option > h2 b { font-size: 1.02rem; letter-spacing: normal; text-transform: none; color: var(--nest-text); }
+  .option > .why { margin: 0; font-size: .88rem; color: var(--nest-muted); max-width: 62ch; }
+
+  /* --- 以下複製 ChatNest 既有的 lightbox 外觀 --- */
+  .collection-lightbox > section {
+    width: min(680px, 100%);
+    display: grid; gap: 12px; padding: 14px;
+    border-radius: 20px;
+    background: var(--nest-bg);
+    color: var(--nest-text);
+  }
+  .lb-header { display: flex; justify-content: space-between; gap: 10px; }
+  .lb-header div { min-width: 0; display: grid; gap: 3px; }
+  .lb-header strong { font-weight: 620; font-size: .98rem; }
+  .lb-header small { color: var(--nest-muted); font-size: .78rem; }
+  .lb-photo {
+    width: 100%; height: 168px; border-radius: 14px;
+    background:
+      radial-gradient(120% 120% at 22% 22%, #6d7f6a 0%, #3a453c 58%, #222a24 100%);
+    display: grid; place-items: center;
+    color: rgb(255 255 255 / .5); font-size: .74rem; letter-spacing: .12em;
+  }
+  .photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .collection-photo-action {
+    min-width: 0; min-height: 46px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 7px 12px;
+    border: 0; border-radius: 14px;
+    background: var(--nest-bg); color: var(--nest-text);
+    box-shadow:
+      2px 2px 5px color-mix(in srgb, var(--nest-shadow), transparent 18%),
+      -1.5px -1.5px 4px var(--nest-control-highlight);
+    font: inherit; font-size: .68rem;
+    cursor: pointer;
+    transition: box-shadow .14s ease, transform .14s ease, color .14s ease;
+  }
+  .collection-photo-action:is(:hover, :focus-visible) { outline: 0; transform: translateY(-1px); }
+  .collection-photo-action:active {
+    box-shadow:
+      inset 3px 3px 7px color-mix(in srgb, var(--nest-shadow), transparent 4%),
+      inset -2px -2px 5px var(--nest-control-highlight);
+    transform: translateY(1px) scale(.975);
+  }
+  .collection-photo-action svg { width: 17px; height: 17px; flex: none; }
+  .collection-photo-action.is-danger { color: var(--nest-danger); }
+  .collection-photo-action.is-armed {
+    color: var(--nest-danger);
+    box-shadow:
+      inset 3px 3px 7px color-mix(in srgb, var(--nest-shadow), transparent 4%),
+      inset -2px -2px 5px var(--nest-control-highlight);
+  }
+
+  /* B 案的確認條 */
+  .confirm-bar {
+    display: grid; gap: 9px;
+    padding: 12px 13px;
+    border-radius: 16px;
+    background: var(--nest-surface);
+    box-shadow: inset 0 0 0 1px var(--nest-line);
+  }
+  .confirm-bar p { margin: 0; font-size: .82rem; color: var(--nest-muted); }
+  .confirm-bar p b { color: var(--nest-text); font-weight: 600; }
+  .confirm-bar .row { display: flex; gap: 8px; }
+  .confirm-bar[hidden] { display: none; }
+
+  .state {
+    font-size: .78rem; color: var(--nest-muted);
+    display: flex; align-items: center; gap: 7px; min-height: 20px;
+  }
+  .state .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--nest-accent); flex: none; }
+  .state.gone .dot { background: var(--nest-danger); }
+
+  .note {
+    display: grid; gap: 7px;
+    padding: 15px 16px; border-radius: 16px;
+    background: var(--nest-surface); border-left: 3px solid var(--nest-accent);
+  }
+  .note h3 { margin: 0; font-size: .92rem; font-weight: 640; }
+  .note p, .note li { margin: 0; font-size: .87rem; color: var(--nest-muted); }
+  .note ul { margin: 0; padding-left: 1.15em; display: grid; gap: 5px; }
+  .note b { color: var(--nest-text); font-weight: 600; }
+
+  hr { border: 0; border-top: 1px solid var(--nest-line); margin: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="lede">
+    <span class="tag">TICKET-H R1 · 打樣</span>
+    <h1>相簿裡的 StackChan 照片,要怎麼刪</h1>
+    <p>
+      後端已經好了：拍了沒刪就會自己進相簿，keep 轉永久，delete 相簿同步消失。
+      現在只差相簿裡的一個「刪除」按鈕。刪掉會連 StackChan 上的實體檔一起消失，<b>沒有復原</b>，
+      所以確認方式想讓妳挑，不自己決定。兩案都可以直接點點看。
+    </p>
+  </header>
+
+  <hr />
+
+  <!-- A 案 -->
+  <section class="option">
+    <h2>A 案 <b>原地再按一次</b></h2>
+    <p class="why">按鈕自己變成「再按一次刪除」，五秒沒動作就變回來。動作列不長高，手指不用移動。</p>
+    <div class="collection-lightbox">
+      <section>
+        <div class="lb-header">
+          <div>
+            <strong>逛寶雅中！看看現在在哪裡、看到什麼？</strong>
+            <small>StackChan 相機 · 暫存</small>
+          </div>
+        </div>
+        <div class="lb-photo">照片</div>
+        <div class="photo-actions" id="rowA">
+          <button class="collection-photo-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6 6.9 19.3l1-5.7-4.1-4 5.7-.8z"/></svg><span>永久收藏</span></button>
+          <button class="collection-photo-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h5l1.6 2h10.4v9a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/></svg><span>加入堆疊</span></button>
+          <button class="collection-photo-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12.5a7 7 0 0 1-9.9 6.4L4.5 20.5l1.6-5.4A7 7 0 1 1 20 12.5z"/></svg><span>帶回聊天</span></button>
+          <button class="collection-photo-action is-danger" id="btnA" data-armed="0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 7h13M10 7V5.4h4V7M7 7l.8 11.1a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7"/></svg>
+            <span id="btnALabel">刪除</span>
+          </button>
+        </div>
+        <div class="state" id="stateA"><span class="dot"></span><span>照片還在</span></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- B 案 -->
+  <section class="option">
+    <h2>B 案 <b>展開確認條</b></h2>
+    <p class="why">動作列下方長出一條，把後果寫清楚再讓妳按。多佔一點高度，但不會手滑。</p>
+    <div class="collection-lightbox">
+      <section>
+        <div class="lb-header">
+          <div>
+            <strong>一整面牆的娃娃！讓我看看有什麼可愛的！</strong>
+            <small>StackChan 相機 · 暫存</small>
+          </div>
+        </div>
+        <div class="lb-photo">照片</div>
+        <div class="photo-actions">
+          <button class="collection-photo-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6 6.9 19.3l1-5.7-4.1-4 5.7-.8z"/></svg><span>永久收藏</span></button>
+          <button class="collection-photo-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h5l1.6 2h10.4v9a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/></svg><span>加入堆疊</span></button>
+          <button class="collection-photo-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12.5a7 7 0 0 1-9.9 6.4L4.5 20.5l1.6-5.4A7 7 0 1 1 20 12.5z"/></svg><span>帶回聊天</span></button>
+          <button class="collection-photo-action is-danger" id="btnB">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 7h13M10 7V5.4h4V7M7 7l.8 11.1a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7"/></svg>
+            <span>刪除</span>
+          </button>
+        </div>
+        <div class="confirm-bar" id="barB" hidden>
+          <p>刪掉之後，<b>StackChan 上的檔案也會一起消失</b>，沒辦法復原。</p>
+          <div class="row">
+            <button class="collection-photo-action" id="cancelB"><span>取消</span></button>
+            <button class="collection-photo-action is-danger" id="confirmB"><span>確定刪除</span></button>
+          </div>
+        </div>
+        <div class="state" id="stateB"><span class="dot"></span><span>照片還在</span></div>
+      </section>
+    </div>
+  </section>
+
+  <hr />
+
+  <div class="note">
+    <h3>兩案都沒有的東西：復原</h3>
+    <p>
+      刪除會把 <b>/srv/mumu-server/photos</b> 底下的圖檔連 .json 一起刪掉，不是只從相簿移除。
+      所以做不出「刪錯了按一下救回來」——真要留這條退路，就得改成先移到回收區、過幾天才真刪，
+      那是另一個決定，不在這張工單裡。想要的話跟我說。
+    </p>
+  </div>
+
+  <div class="note">
+    <h3>兩案共同的部分</h3>
+    <ul>
+      <li>刪除鍵<b>只對 StackChan 照片出現</b>。聊天照片、截圖沒有這顆——它們本來就沒有刪除功能，要不要開是另一個決定。</li>
+      <li>按鈕在圖片<b>下方</b>的動作列，不壓在照片上。</li>
+      <li>沿用既有的 <b>.collection-photo-action</b> 樣式，只有文字顏色換成既有的 danger 色。沒有新的視覺元素。</li>
+      <li>刪完 lightbox 會關掉，相簿裡那張直接消失。</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+  (function () {
+    var btnA = document.getElementById("btnA");
+    var labelA = document.getElementById("btnALabel");
+    var stateA = document.getElementById("stateA");
+    var timerA = null;
+
+    function disarmA() {
+      btnA.dataset.armed = "0";
+      btnA.classList.remove("is-armed");
+      labelA.textContent = "刪除";
+      if (timerA) { clearTimeout(timerA); timerA = null; }
+    }
+
+    btnA.addEventListener("click", function () {
+      if (btnA.dataset.armed === "1") {
+        disarmA();
+        btnA.disabled = true;
+        stateA.classList.add("gone");
+        stateA.lastElementChild.textContent = "已刪除 · StackChan 上的檔案也沒了";
+        return;
+      }
+      btnA.dataset.armed = "1";
+      btnA.classList.add("is-armed");
+      labelA.textContent = "再按一次刪除";
+      timerA = setTimeout(disarmA, 5000);
+    });
+
+    var btnB = document.getElementById("btnB");
+    var barB = document.getElementById("barB");
+    var stateB = document.getElementById("stateB");
+
+    btnB.addEventListener("click", function () { barB.hidden = false; });
+    document.getElementById("cancelB").addEventListener("click", function () { barB.hidden = true; });
+    document.getElementById("confirmB").addEventListener("click", function () {
+      barB.hidden = true;
+      btnB.disabled = true;
+      stateB.classList.add("gone");
+      stateB.lastElementChild.textContent = "已刪除 · StackChan 上的檔案也沒了";
+    });
+  })();
+</script>
