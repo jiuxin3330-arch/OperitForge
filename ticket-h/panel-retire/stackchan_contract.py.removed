@@ -1,0 +1,151 @@
+from __future__ import annotations
+
+import base64
+import re
+from copy import deepcopy
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from fastapi import HTTPException
+
+PHOTO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,80}$")
+PHOTO_STATUSES = frozenset({"pending", "saved"})
+MAX_PHOTO_BYTES = 12 * 1024 * 1024
+_ALLOWED_IMAGE_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
+
+# 1x1 transparent PNG. The fixture is deliberately synthetic and contains no
+# real StackChan image or private metadata.
+_FAKE_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
+
+
+def _fake_seed() -> dict[str, dict[str, Any]]:
+    now = datetime.now(UTC)
+    return {
+        "fake_pending_01": {
+            "id": "fake_pending_01",
+            "status": "pending",
+            "size": len(_FAKE_PNG),
+            "created_at": (now - timedelta(minutes=8)).isoformat(),
+            "category": "",
+            "image": _FAKE_PNG,
+            "media_type": "image/png",
+        },
+        "fake_saved_0001": {
+            "id": "fake_saved_0001",
+            "status": "saved",
+            "size": len(_FAKE_PNG),
+            "created_at": (now - timedelta(days=1)).isoformat(),
+            "category": "桌面日常",
+            "image": _FAKE_PNG,
+            "media_type": "image/png",
+        },
+    }
+
+
+_FAKE_PHOTOS = _fake_seed()
+
+
+def reset_fake_photos() -> None:
+    _FAKE_PHOTOS.clear()
+    _FAKE_PHOTOS.update(_fake_seed())
+
+
+def validate_photo_id(value: str) -> str:
+    if not PHOTO_ID_RE.fullmatch(value):
+        raise HTTPException(status_code=400, detail="invalid StackChan photo id")
+    return value
+
+
+def clean_category(value: str) -> str:
+    cleaned = " ".join(value.strip().split())
+    if len(cleaned) > 40:
+        raise HTTPException(status_code=422, detail="category is too long")
+    return cleaned
+
+
+def sanitize_photo(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    photo_id = str(value.get("id") or "")
+    status = str(value.get("status") or "")
+    if not PHOTO_ID_RE.fullmatch(photo_id) or status not in PHOTO_STATUSES:
+        return None
+    try:
+        size = max(0, min(MAX_PHOTO_BYTES, int(value.get("size") or 0)))
+    except (TypeError, ValueError):
+        size = 0
+    created_at = str(value.get("created_at") or "")[:64]
+    category = " ".join(str(value.get("category") or "").split())[:40]
+    return {
+        "id": photo_id,
+        "status": status,
+        "size": size,
+        "created_at": created_at,
+        "category": category,
+    }
+
+
+def sanitize_photo_list(payload: Any) -> dict[str, Any]:
+    root = payload if isinstance(payload, dict) else {}
+    items = []
+    for raw in root.get("photos") or []:
+        item = sanitize_photo(raw)
+        if item:
+            items.append(item)
+    items.sort(key=lambda item: (item["created_at"], item["id"]), reverse=True)
+    counts = {
+        status: sum(1 for item in items if item["status"] == status)
+        for status in ("pending", "saved")
+    }
+    return {"photos": items, "counts": counts}
+
+
+def fake_list(status: str) -> dict[str, Any]:
+    if status not in {"all", *PHOTO_STATUSES}:
+        raise HTTPException(status_code=400, detail="invalid StackChan photo status")
+    rows = [deepcopy(row) for row in _FAKE_PHOTOS.values()]
+    if status != "all":
+        rows = [row for row in rows if row["status"] == status]
+    return sanitize_photo_list({"photos": rows})
+
+
+def fake_image(photo_id: str) -> tuple[bytes, str]:
+    row = _FAKE_PHOTOS.get(validate_photo_id(photo_id))
+    if not row:
+        raise HTTPException(status_code=404, detail="StackChan photo not found")
+    return bytes(row["image"]), str(row["media_type"])
+
+
+def fake_keep(photo_id: str) -> dict[str, Any]:
+    row = _FAKE_PHOTOS.get(validate_photo_id(photo_id))
+    if not row:
+        raise HTTPException(status_code=404, detail="StackChan photo not found")
+    row["status"] = "saved"
+    return {"ok": True, "status": "saved"}
+
+
+def fake_category(photo_id: str, category: str) -> dict[str, Any]:
+    row = _FAKE_PHOTOS.get(validate_photo_id(photo_id))
+    if not row:
+        raise HTTPException(status_code=404, detail="StackChan photo not found")
+    row["category"] = clean_category(category)
+    return {"ok": True, "category": row["category"]}
+
+
+def fake_delete(photo_id: str) -> dict[str, Any]:
+    photo_id = validate_photo_id(photo_id)
+    row = _FAKE_PHOTOS.pop(photo_id, None)
+    if not row:
+        raise HTTPException(status_code=404, detail="StackChan photo not found")
+    return {"ok": True, "deleted": photo_id, "previous_status": row["status"]}
+
+
+def sanitize_image(content: bytes, media_type: str | None) -> tuple[bytes, str]:
+    normalized = (media_type or "").split(";", 1)[0].strip().lower()
+    if normalized not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=502, detail="legacy StackChan returned an unsafe image type")
+    if not content or len(content) > MAX_PHOTO_BYTES:
+        raise HTTPException(status_code=502, detail="legacy StackChan returned an invalid image size")
+    return content, normalized
