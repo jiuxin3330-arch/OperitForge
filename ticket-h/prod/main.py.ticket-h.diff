@@ -1,0 +1,147 @@
+--- /srv/chatnest-next/backend/app/main.py.bak-ticketh-1788313450	2026-09-01 00:48:31.962711383 +0800
++++ /srv/chatnest-next/backend/app/main.py	2026-09-02 09:44:54.442303492 +0800
+@@ -40,6 +40,7 @@
+ 
+ from .adapters import AdapterUnavailable, adapter_for
+ from . import image_context
++from . import stackchan_gallery
+ from .config import settings
+ from .checkpoint_refresh import (
+     checkpoint_refresh_status,
+@@ -249,6 +250,8 @@
+ RECOVERY_TAIL_MAX_CHARS = 12_000
+ GALLERY_TRANSIENT_TTL_DAYS = 30
+ GALLERY_HOUSEKEEPING_SECONDS = 3600
++# StackChan 照片對帳:磁碟是事實來源,這是「拍了沒刪就在相簿看得到」的延遲上限。
++STACKCHAN_SYNC_SECONDS = 60
+ 
+ logger = logging.getLogger(__name__)
+ 
+@@ -305,6 +308,10 @@
+     gallery_task = asyncio.create_task(
+         _gallery_retention_loop(gallery_stop), name="chatnest-gallery-retention"
+     )
++    stackchan_stop = asyncio.Event()
++    stackchan_task = asyncio.create_task(
++        _stackchan_gallery_sync_loop(stackchan_stop), name="chatnest-stackchan-gallery-sync"
++    )
+     if external_push_configured(settings):
+         push_task = asyncio.create_task(
+             delivery_loop(settings, push_stop), name="chatnest-web-push"
+@@ -321,6 +328,11 @@
+             await asyncio.wait_for(gallery_task, timeout=15)
+         except TimeoutError:
+             gallery_task.cancel()
++        stackchan_stop.set()
++        try:
++            await asyncio.wait_for(stackchan_task, timeout=15)
++        except TimeoutError:
++            stackchan_task.cancel()
+         if push_task is not None:
+             push_stop.set()
+             try:
+@@ -7307,6 +7319,32 @@
+             pass
+ 
+ 
++async def _stackchan_gallery_sync_loop(stop: asyncio.Event) -> None:
++    """把 StackChan 的照片對帳進相簿(TICKET-H)。
++
++    對帳而不是在拍照當下推一筆:StackChan 有三條會改變狀態的路徑
++    (落地 / keep / 60 天到期),每條都掛通知等於改動它的既有行為,
++    而且漏一條就會在相簿留下指向已刪檔案的死卡。理由詳見 stackchan_gallery.py。
++    """
++    while not stop.is_set():
++        try:
++            with transaction() as conn:
++                result = stackchan_gallery.sync(
++                    conn,
++                    gallery_root=(settings.upload_dir / "gallery").resolve(),
++                    soft_cap_bytes=settings.gallery_soft_cap_bytes,
++                )
++            _delete_gallery_files(result.stale_files)
++            if result.changed or result.skipped_soft_cap:
++                logger.info("stackchan gallery sync %s", result.as_dict())
++        except Exception:
++            logger.exception("stackchan gallery sync failed")
++        try:
++            await asyncio.wait_for(stop.wait(), timeout=STACKCHAN_SYNC_SECONDS)
++        except TimeoutError:
++            pass
++
++
+ def _delete_gallery_files(stored_names: list[str]) -> None:
+     gallery_root = (settings.upload_dir / "gallery").resolve()
+     for stored_name in stored_names:
+@@ -7639,8 +7677,27 @@
+         raise HTTPException(status_code=400, detail="no changes")
+     trimmed_files: list[str] = []
+     with transaction() as conn:
+-        if not conn.execute("SELECT 1 FROM gallery_photos WHERE id=?", (photo_id,)).fetchone():
++        existing = conn.execute(
++            "SELECT source_type,source_ref FROM gallery_photos WHERE id=?", (photo_id,)
++        ).fetchone()
++        if not existing:
+             raise HTTPException(status_code=404, detail="photo not found")
++        # R1:相簿按「永久收藏」/「改為暫存」要同步到 StackChan 的實體檔。
++        # 先寫磁碟再改 DB——磁碟是對帳的事實來源,寫不成就整筆退回,
++        # 不要留下「相簿說永久、檔案還在 pending」這種兩邊各說各話的狀態。
++        if (
++            str(existing["source_type"]) == stackchan_gallery.SOURCE_TYPE
++            and "permanent" in values
++            and str(existing["source_ref"] or "")
++        ):
++            moved = stackchan_gallery.set_permanent_on_disk(
++                str(existing["source_ref"]), bool(values["permanent"])
++            )
++            if not moved:
++                raise HTTPException(
++                    status_code=409,
++                    detail="StackChan photo is no longer on disk; the gallery entry will be reconciled away",
++                )
+         if values.get("album_id") and not conn.execute(
+             "SELECT 1 FROM gallery_albums WHERE id=?", (values["album_id"],)
+         ).fetchone():
+@@ -7671,6 +7728,42 @@
+     return result
+ 
+ 
++@app.delete("/api/v2/gallery/photos/{photo_id}")
++async def delete_gallery_photo(
++    photo_id: str,
++    principal: Principal = Depends(require_csrf),
++) -> dict[str, Any]:
++    """刪除一張 StackChan 照片,連實體檔一起(TICKET-H R1)。
++
++    只開放 source_type='stackchan'。相簿裡其他來源(chat / screenshot /
++    legacy_chatnest)原本就沒有刪除功能,要不要一併開是另一個決定——
++    chat 照片還牽涉到訊息附件,不在本工單範圍內,所以這裡明確擋掉而不是預設放行。
++    """
++    with transaction() as conn:
++        row = conn.execute(
++            "SELECT source_type,source_ref,stored_name FROM gallery_photos WHERE id=?",
++            (photo_id,),
++        ).fetchone()
++        if not row:
++            raise HTTPException(status_code=404, detail="photo not found")
++        if str(row["source_type"]) != stackchan_gallery.SOURCE_TYPE:
++            raise HTTPException(
++                status_code=400,
++                detail="only StackChan photos can be deleted from the gallery",
++            )
++        source_ref = str(row["source_ref"] or "")
++        if source_ref:
++            stackchan_gallery.delete_on_disk(source_ref)
++        conn.execute("DELETE FROM gallery_photos WHERE id=?", (photo_id,))
++        audit(
++            conn, principal.actor_id, "gallery.photo.delete", "gallery_photo", photo_id,
++            {"source_type": stackchan_gallery.SOURCE_TYPE, "source_ref": source_ref},
++        )
++        stored_name = str(row["stored_name"])
++    _delete_gallery_files([stored_name])
++    return {"ok": True}
++
++
+ @app.post("/api/v2/gallery/photos/{photo_id}/send-to-chat")
+ async def replay_gallery_photo(
+     photo_id: str,

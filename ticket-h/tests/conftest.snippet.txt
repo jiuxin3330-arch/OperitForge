@@ -1,0 +1,5 @@
+19-    monkeypatch.setenv("SCREENSHOT_WORKER_TOKEN", "worker-test-token")
+20-    # 背景的 StackChan 對帳迴圈會掃這個目錄。不指到 tmp 的話,
+21-    # 測試啟動 app 就會把生產照片灌進測試資料庫。
+22:    monkeypatch.setenv("STACKCHAN_PHOTO_ROOT", str(tmp_path / "stackchan-photos"))
+23-
