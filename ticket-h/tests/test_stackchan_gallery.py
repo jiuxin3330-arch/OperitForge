@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import errno
 import json
 import os
 import sqlite3
@@ -363,3 +364,58 @@ def test_missing_photo_root_never_wipes_the_gallery(photos, conn, gallery_root, 
     assert result.skipped_missing_root is True
     assert result.removed == []
     assert len(rows(conn)) == 1, "目錄讀不到就把相簿清空 = 最糟的失敗方式"
+
+
+# --- 端點層:磁碟寫不進去的時候(9/2 事故) -----------------------------------
+#
+# 9/2 上線後刪除回 500,空白的 Internal Server Error。原因不在程式邏輯,
+# 而在 backend 的 systemd 沙箱 ProtectSystem=strict 只開了
+# ReadWritePaths=/root/chatnest-next/data,/srv/mumu-server 對它是唯讀的。
+# 我當時查到「backend 以 root 跑」就判斷權限沒問題——以身分推斷能力,沒有真的寫一次。
+#
+# 沙箱設定本身測不進 pytest(那是部署層的事,改用
+# ticket-h/verify_disk_writeback.py 在同規格的 systemd 沙箱裡實測)。
+# 這裡鎖的是**寫不進去的時候端點要怎麼表現**:
+#   1. 回 409 且訊息看得懂,不是空白 500;
+#   2. DB 不准動。反過來做(相簿刪了、檔案還在)不是「至少成功一半」,
+#      下一輪對帳會照磁碟把它放回來,變成刪了又出現的鬼打牆。
+
+def _read_only_error(*_args, **_kwargs):
+    raise OSError(errno.EROFS, "Read-only file system")
+
+
+def test_delete_surfaces_filesystem_failure_and_keeps_the_row(client, auth, tmp_path, monkeypatch):
+    photo_id = "20260902T000000Z_readonly_del"
+    image = _stackchan_photo_on_disk(tmp_path, photo_id)
+    created = _upload_stackchan(client, auth, photo_id).json()
+    monkeypatch.setattr(stackchan_gallery, "delete_on_disk", _read_only_error)
+
+    response = client.delete(f"/api/v2/gallery/photos/{created['id']}", headers=auth)
+
+    assert response.status_code == 409, "檔案系統失敗不該變成空白的 500"
+    assert "Read-only file system" in response.json()["detail"], "訊息要說得出是什麼壞了"
+    assert image.is_file(), "檔案本來就沒刪掉"
+    listing = client.get("/api/v2/gallery", headers=auth).json()
+    assert any(p["id"] == created["id"] for p in listing["photos"]), (
+        "磁碟刪不掉卻把 DB 列刪了 = 下一輪對帳又把它放回來"
+    )
+
+
+def test_marking_permanent_surfaces_filesystem_failure_and_keeps_the_state(
+    client, auth, tmp_path, monkeypatch
+):
+    photo_id = "20260902T000000Z_readonly_keep"
+    _stackchan_photo_on_disk(tmp_path, photo_id)
+    created = _upload_stackchan(client, auth, photo_id).json()
+    monkeypatch.setattr(stackchan_gallery, "set_permanent_on_disk", _read_only_error)
+
+    response = client.patch(
+        f"/api/v2/gallery/photos/{created['id']}", headers=auth, json={"permanent": True})
+
+    assert response.status_code == 409
+    assert "Read-only file system" in response.json()["detail"]
+    root = tmp_path / "stackchan-photos"
+    assert (root / "pending" / f"{photo_id}.jpg").is_file()
+    current = client.get("/api/v2/gallery", headers=auth).json()
+    entry = next(p for p in current["photos"] if p["id"] == created["id"])
+    assert entry["permanent"] is False, "磁碟沒搬成,相簿不准自己說已經永久收藏了"

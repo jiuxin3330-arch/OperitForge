@@ -1,5 +1,5 @@
---- /srv/chatnest-next/backend/app/main.py.bak-ticketh-1788313450	2026-09-01 00:48:31.962711383 +0800
-+++ /srv/chatnest-next/backend/app/main.py	2026-09-02 09:44:54.442303492 +0800
+--- main.py.bak-ticketh-1788313450	2026-09-01 00:48:31.962711383 +0800
++++ main.py	2026-09-02 12:03:14.927435964 +0800
 @@ -40,6 +40,7 @@
  
  from .adapters import AdapterUnavailable, adapter_for
@@ -13,7 +13,7 @@
  GALLERY_TRANSIENT_TTL_DAYS = 30
  GALLERY_HOUSEKEEPING_SECONDS = 3600
 +# StackChan 照片對帳:磁碟是事實來源,這是「拍了沒刪就在相簿看得到」的延遲上限。
-+STACKCHAN_SYNC_SECONDS = 60
++STACKCHAN_SYNC_SECONDS = 30
  
  logger = logging.getLogger(__name__)
  
@@ -73,7 +73,7 @@
  def _delete_gallery_files(stored_names: list[str]) -> None:
      gallery_root = (settings.upload_dir / "gallery").resolve()
      for stored_name in stored_names:
-@@ -7639,8 +7677,27 @@
+@@ -7639,8 +7677,35 @@
          raise HTTPException(status_code=400, detail="no changes")
      trimmed_files: list[str] = []
      with transaction() as conn:
@@ -91,9 +91,17 @@
 +            and "permanent" in values
 +            and str(existing["source_ref"] or "")
 +        ):
-+            moved = stackchan_gallery.set_permanent_on_disk(
-+                str(existing["source_ref"]), bool(values["permanent"])
-+            )
++            try:
++                moved = stackchan_gallery.set_permanent_on_disk(
++                    str(existing["source_ref"]), bool(values["permanent"])
++                )
++            except OSError as exc:
++                # 檔案系統寫不進去(權限、唯讀掛載、磁碟滿)不是「照片不見了」,
++                # 要分開講。整筆退回,DB 不動——見下面 delete 的同一段理由。
++                raise HTTPException(
++                    status_code=409,
++                    detail=f"cannot update the photo file on disk: {exc.strerror or exc}",
++                ) from exc
 +            if not moved:
 +                raise HTTPException(
 +                    status_code=409,
@@ -102,7 +110,7 @@
          if values.get("album_id") and not conn.execute(
              "SELECT 1 FROM gallery_albums WHERE id=?", (values["album_id"],)
          ).fetchone():
-@@ -7671,6 +7728,42 @@
+@@ -7671,6 +7736,51 @@
      return result
  
  
@@ -131,7 +139,16 @@
 +            )
 +        source_ref = str(row["source_ref"] or "")
 +        if source_ref:
-+            stackchan_gallery.delete_on_disk(source_ref)
++            try:
++                stackchan_gallery.delete_on_disk(source_ref)
++            except OSError as exc:
++                # 實體檔刪不掉就整筆退回,DB 列留著。
++                # 反過來做(DB 刪了、檔案還在)不是「至少刪掉一半」——
++                # 下一輪對帳會照著磁碟把它原封不動放回相簿,變成刪了又出現。
++                raise HTTPException(
++                    status_code=409,
++                    detail=f"cannot remove the photo file on disk: {exc.strerror or exc}",
++                ) from exc
 +        conn.execute("DELETE FROM gallery_photos WHERE id=?", (photo_id,))
 +        audit(
 +            conn, principal.actor_id, "gallery.photo.delete", "gallery_photo", photo_id,

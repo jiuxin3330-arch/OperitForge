@@ -284,3 +284,120 @@ Test Files  65 passed (65)
 ### 範圍
 
 糯糯:「更進一步的美化是美化窗的工作」——所以只做這兩點,沒有順手調別的。
+
+---
+
+# 第四輪:刪除回 500(9/2 上線後事故)
+
+糯糯回報:「沒通過 刪除並沒有起效 同時會出現這樣的提示！我殺了app一樣能看到點按刪除的照片」
+
+## 原因
+
+```
+File "/root/chatnest-next/backend/app/main.py", line 7756, in delete_gallery_photo
+OSError: [Errno 30] Read-only file system: '/srv/mumu-server/photos/pending/20260902T030134Z_055649b424.jpg'
+```
+
+不是程式邏輯的問題,是 backend 的 systemd 沙箱:
+
+```
+ProtectSystem=strict
+ReadWritePaths=/root/chatnest-next/data
+```
+
+`ProtectSystem=strict` 把整個檔案系統掛成唯讀,只有 `ReadWritePaths` 列到的
+才寫得進去。`/srv/mumu-server` 不在裡面,所以 backend **以 root 跑也一樣寫不進去**
+——systemd 的掛載擋在權限檢查之前。
+
+`set_permanent_on_disk` 走同一條寫入路徑,同樣會 500,只是她先按到刪除。
+
+## 這是我的疏漏,漏在哪
+
+施工時我查過「backend 以什麼身分跑」,看到是 root 就判斷權限沒問題。
+**以身分推斷能力,沒有真的寫一次。** 而我寫的端點測試把
+`STACKCHAN_PHOTO_ROOT` 指到 tmp,tmp 是寫得進去的,所以測試整片綠燈,
+卻完全沒碰到線上那個掛載。
+
+這是本次工單第三次踩到同一個形狀的錯:**施工者身在被施工的系統之內**
+(前兩次:從 exec_vps 裡面探測 exec_vps;`setsid` 逃得掉 session 逃不掉
+service cgroup)。共同點都是「用推論代替實測,而推論的前提正好被環境改寫了」。
+
+## 修法
+
+### 1. 沙箱開到最小範圍(部署層)
+
+`/etc/systemd/system/chatnest-next.service.d/ticket-h-photos.conf`
+(repo 備份:`deploy/chatnest-next-ticket-h-photos.conf`)
+
+只開 `photos` 這一個子目錄,不是整個 `/srv/mumu-server`——功能需要的就只有
+搬 `pending/` ↔ `saved/` 與刪檔,`brain.py`、憑證、`config.yaml` 維持唯讀。
+
+這裡沒有「不打洞」的等價做法。R1 要求的雙向同步,本質上就是 backend 得改那些檔案。
+(對照 ⑤a 的 `/root` ACL:那次有等價做法——把密鑰搬到 `/srv/chatnest-next/runtime/`
+——所以沒有動 Phase 0 的界線。)
+
+### 2. 寫不進去的時候要說人話(程式層)
+
+`patch_gallery_photo` 與 `delete_gallery_photo` 各補一段 `except OSError` → 409,
+訊息帶 `strerror`。原本會變成空白的 Internal Server Error,她只能看到一個紅色提示,
+什麼都查不出來。
+
+**DB 不准動。** 反過來做(相簿刪了、檔案還在)不是「至少成功一半」——
+下一輪對帳會照著磁碟把它原封不動放回相簿,變成刪了又出現的鬼打牆。
+原本靠 transaction rollback 已經是這個行為,現在把它寫成明確的規則並用測試鎖住。
+
+## 驗證
+
+### 同規格沙箱實測(`verify_disk_writeback.py`)
+
+沙箱設定測不進 pytest,所以用 `systemd-run` 開一個設定相同的暫時單元,
+在裡面真的跑一次 `set_permanent_on_disk` / `delete_on_disk`。用合成照片,
+沒有動她任何一張真的。
+
+```
+PASS 起始在 pending/ (status=pending)
+PASS 設永久 → 搬到 saved/
+PASS 實體檔真的在 saved/
+PASS metadata 一起搬過去
+PASS 改回暫存 → 搬回 pending/
+PASS 實體檔真的回到 pending/
+PASS 刪除 → delete_on_disk 回報有刪到
+PASS 磁碟上真的不見了
+RESULT=OK
+```
+
+**反向對照**(同一支腳本,不給 `ReadWritePaths=/srv/mumu-server/photos`):
+
+```
+OSError: [Errno 30] Read-only file system: '/srv/mumu-server/photos/saved/....jpg'
+```
+
+原封不動重現了她遇到的那個錯誤——所以這支腳本測得到的正是這件事。
+
+順帶驗到對帳的另一半:合成照片落地 30 秒內自動進相簿,`delete_on_disk` 之後
+DB 列也被對帳收掉,沒有死卡。測試照片與 DB 列都已清乾淨。
+
+### 端點測試(`tests/test_stackchan_gallery.py`,新增兩條)
+
+鎖「寫不進去的時候端點要怎麼表現」:409、訊息看得懂、DB 列與實體檔都不動。
+
+```
+23 passed, 1 skipped
+```
+
+拆掉修復後跑同兩條(對照組):
+
+```
+2 failed  ← OSError 直接冒出來變成 500
+```
+
+`test_gallery_and_screenshots.py` 有一條 `test_screenshot_worker_uses_mobile_ai_view_before_navigation`
+是紅的,與本次無關:它用相對路徑讀 `workers/screenshot/worker.mjs`,只有從 repo 根目錄
+跑才會過(從根目錄驗過:passed)。
+
+## 沒做的事
+
+`/srv/mumu-server` 底下其他目錄維持唯讀。這個 drop-in 是**部署層設定**,
+重新部署時如果只覆蓋 `chatnest-next.service` 本體不會遺失(drop-in 是獨立檔),
+但如果整個 `/etc/systemd/system/chatnest-next.service.d/` 被重建就會掉——
+repo 的 `deploy/` 留了一份備份。
