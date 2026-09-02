@@ -1,6 +1,6 @@
 --- /srv/chatnest-next/frontend/src/styles.css.bak-ticketh-1788318562	2026-09-01 06:54:48.513430936 +0800
-+++ /srv/chatnest-next/frontend/src/styles.css	2026-09-02 11:09:22.931842752 +0800
-@@ -10928,6 +10928,26 @@
++++ /srv/chatnest-next/frontend/src/styles.css	2026-09-02 11:42:30.030492278 +0800
+@@ -10928,6 +10928,49 @@
    font-size: .68rem;
  }
  .collection-photo-action svg { width: 17px; height: 17px; flex: none; }
@@ -19,11 +19,34 @@
 +  padding: 12px 13px;
 +  border-radius: 16px;
 +  background: var(--nest-surface);
-+  box-shadow: inset 0 0 0 1px var(--nest-line);
 +}
 +.photo-delete-confirm p { margin: 0; font-size: .82rem; color: var(--nest-muted); }
 +.photo-delete-confirm p b { color: var(--nest-text); font-weight: 600; }
 +.photo-delete-confirm > div { display: flex; gap: 8px; }
++/* 2026-09-02 蓋章:拿掉新擬態突起,純平面。層次全靠色階,不用陰影也不用邊框。
++   icon 尺寸與 46px 觸控面積都不動。
++   放在既有規則之後覆寫,特異性相同靠順序取勝——這樣回滾只要刪掉這一段。 */
++.collection-photo-action {
++  background: var(--nest-surface);
++  box-shadow: none;
++}
++.collection-photo-action:active:not(:disabled) {
++  box-shadow: none;
++  transform: none;
++  background: color-mix(in srgb, var(--nest-surface), var(--nest-text) 10%);
++}
++/* 沒有陰影之後,鍵盤聚焦得自己畫出來,否則完全看不出焦點在哪。 */
++.collection-photo-action:focus-visible:not(:disabled) {
++  box-shadow: none;
++  transform: none;
++  outline: 2px solid var(--nest-accent);
++  outline-offset: 2px;
++}
++/* 卡片是 surface,卡片裡的按鈕就反向用 bg,一樣只靠色階分層。 */
++.photo-delete-confirm .collection-photo-action { background: var(--nest-bg); }
++.photo-delete-confirm .collection-photo-action:active:not(:disabled) {
++  background: color-mix(in srgb, var(--nest-bg), var(--nest-text) 10%);
++}
  .collection-photo-action:is(:focus-visible, :active):not(:disabled),
  .collection-lightbox > section > header .icon-action:is(:focus-visible, :active) {
    outline: 0;

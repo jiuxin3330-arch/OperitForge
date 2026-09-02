@@ -53,6 +53,18 @@ describe("TICKET-H:相簿裡的 StackChan 照片", () => {
     expect(app).toMatch(/if \(document\.visibilityState !== "visible"\) return;/);
   });
 
+  it("動作鍵與確認卡片是純平面:不留新擬態突起,也不留任何框線", () => {
+    // 2026-09-02 蓋章:「按鍵直接刪除新擬態突起」「提示的框線要刪,完全不能出現」。
+    // 更進一步的美化是美化窗的工作,這裡只鎖住這兩條硬要求。
+    const confirmCard = styles.slice(styles.indexOf(".photo-delete-confirm {"));
+    expect(confirmCard.slice(0, confirmCard.indexOf("}"))).not.toMatch(/box-shadow|border(?!-radius)/);
+    const flat = styles.slice(styles.indexOf("拿掉新擬態突起"));
+    expect(flat).toMatch(/\.collection-photo-action\s*\{[^}]*box-shadow:\s*none/s);
+    expect(flat).toMatch(/background:\s*var\(--nest-surface\)/);
+    // 沒有陰影就得自己畫聚焦框,否則鍵盤操作看不出焦點在哪
+    expect(flat).toMatch(/:focus-visible[^{]*\{[^}]*outline:\s*2px solid/s);
+  });
+
   it("後端只讓 StackChan 照片被刪,而且連實體檔一起刪", () => {
     expect(main).toContain('@app.delete("/api/v2/gallery/photos/{photo_id}")');
     expect(main).toContain("stackchan_gallery.delete_on_disk(source_ref)");
