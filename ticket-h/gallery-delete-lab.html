@@ -1,4 +1,4 @@
-<title>相簿刪除鍵定案</title>
+<title>相簿動作列純平面版</title>
 <style>
   /* 沿用 ChatNest 既有的設計語彙(styles.css 的 token 與 .collection-photo-action /
      .collection-lightbox 尺寸),不另立風格。
@@ -88,39 +88,36 @@
     color: rgb(255 255 255 / .5); font-size: .74rem; letter-spacing: .12em;
   }
   .photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* 9/2 裁定:拿掉新擬態突起,純平面。層次全靠色階,不用陰影也不用邊框。
+     icon 尺寸與觸控面積都不動。 */
   .collection-photo-action {
     min-width: 46px; min-height: 46px;
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     padding: 7px 13px;
     border: 0; border-radius: 14px;
-    background: var(--nest-bg); color: var(--nest-text);
-    box-shadow:
-      2px 2px 5px color-mix(in srgb, var(--nest-shadow), transparent 18%),
-      -1.5px -1.5px 4px var(--nest-control-highlight);
+    background: var(--nest-surface); color: var(--nest-text);
     font: inherit; font-size: .68rem;
     cursor: pointer;
-    transition: box-shadow .14s ease, transform .14s ease, color .14s ease;
+    transition: background .14s ease, color .14s ease;
   }
-  .collection-photo-action:is(:hover, :focus-visible) { outline: 0; transform: translateY(-1px); }
-  .collection-photo-action:focus-visible { box-shadow: 0 0 0 2px var(--nest-accent); }
-  .collection-photo-action:active {
-    box-shadow:
-      inset 3px 3px 7px color-mix(in srgb, var(--nest-shadow), transparent 4%),
-      inset -2px -2px 5px var(--nest-control-highlight);
-    transform: translateY(1px) scale(.975);
-  }
+  .collection-photo-action:focus-visible { outline: 2px solid var(--nest-accent); outline-offset: 2px; }
+  .collection-photo-action:active { background: color-mix(in srgb, var(--nest-surface), var(--nest-text) 10%); }
   .collection-photo-action svg { width: 19px; height: 19px; flex: none; }
   .collection-photo-action.is-danger { color: var(--nest-danger); }
-  .collection-photo-action[disabled] { opacity: .38; box-shadow: none; cursor: default; }
-  /* 確認條裡的兩顆有文字,寬一點 */
-  .confirm-bar .collection-photo-action { padding-inline: 18px; font-size: .74rem; }
+  .collection-photo-action[disabled] { opacity: .38; cursor: default; }
+  /* 卡片裡的按鈕反向:卡片是 surface,按鈕就用 bg,一樣靠色階分層 */
+  .confirm-bar .collection-photo-action {
+    padding-inline: 18px; font-size: .74rem;
+    background: var(--nest-bg);
+  }
+  .confirm-bar .collection-photo-action:active { background: color-mix(in srgb, var(--nest-bg), var(--nest-text) 10%); }
 
+  /* 9/2 裁定:框線完全不能出現。純平面、無邊框的卡片。 */
   .confirm-bar {
     display: grid; gap: 9px;
     padding: 12px 13px;
     border-radius: 16px;
     background: var(--nest-surface);
-    box-shadow: inset 0 0 0 1px var(--nest-line);
   }
   .confirm-bar p { margin: 0; font-size: .82rem; color: var(--nest-muted); }
   .confirm-bar p b { color: var(--nest-text); font-weight: 600; }
@@ -144,10 +141,12 @@
   .legend li { font-size: .86rem; color: var(--nest-muted); }
   .legend li b { color: var(--nest-text); font-weight: 600; }
 
+  /* 說明卡也拿掉了左邊那條 accent 線——她說框線完全不能出現,
+     打樣頁自己還掛著一條就太不像話了。 */
   .note {
     display: grid; gap: 7px;
     padding: 15px 16px; border-radius: 16px;
-    background: var(--nest-surface); border-left: 3px solid var(--nest-accent);
+    background: var(--nest-surface);
   }
   .note h3 { margin: 0; font-size: .92rem; font-weight: 640; }
   .note p, .note li { margin: 0; font-size: .87rem; color: var(--nest-muted); }
@@ -162,21 +161,21 @@
 <div class="wrap">
 
   <header class="lede">
-    <span class="tag">TICKET-H R1 · 定案</span>
+    <span class="tag">TICKET-H R1 · 純平面版</span>
     <h1>相簿裡的 StackChan 照片，動作列定案</h1>
     <p>
-      依糯糯 9/2 的裁定改的：<b>B 案</b>展開確認條、動作鍵<b>只留 icon 不要文字</b>、
-      <b>刪除鍵放最左</b>（右手拇指自然落在右側，最左最不容易誤觸）。點點看。
+      這是第二輪：拿掉按鈕的<b>新擬態突起</b>、確認卡片的<b>框線整條刪掉</b>，
+      兩者都變成純平面，層次只靠色階。icon 尺寸與 46×46 的觸控面積都沒動。點點看。
     </p>
   </header>
 
   <hr />
 
   <section class="stage">
-    <h2>定案樣式</h2>
+    <h2>純平面版</h2>
     <p class="why">
-      刪除鍵是紅的、在最左；狀態文字仍在標題底下那行（「StackChan 相機 · 暫存」），
-      所以拿掉按鈕文字之後，還是看得出這張現在是暫存還是永久收藏。
+      按鈕不再有突起，改用比背景亮一階的底色標示可按範圍；確認卡片沒有任何框線，
+      裡面的兩顆按鈕反過來用背景色，一樣只靠色階分層。
     </p>
     <div class="collection-lightbox">
       <section>
@@ -224,10 +223,11 @@
   </div>
 
   <div class="note">
-    <h3>拿掉文字之後補的兩件事</h3>
+    <h3>拿掉突起之後補的三件事</h3>
     <ul>
-      <li>每顆都有 <b>aria-label</b> 與長按提示，讀螢幕跟滑鼠停留都還說得出名字。</li>
-      <li>按鈕維持 <b>46×46</b> 的觸控面積，沒有因為變窄就變難按。</li>
+      <li>按下去的回饋改成<b>底色加深</b>，不再用凹陷陰影，也不位移。</li>
+      <li>鍵盤聚焦改用 <b>outline</b>，不然沒有陰影就完全看不出焦點在哪。</li>
+      <li>觸控面積仍是 <b>46×46</b>，icon 仍是 19px —— 都沒動。</li>
     </ul>
   </div>
 
