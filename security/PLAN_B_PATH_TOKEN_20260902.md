@@ -14,10 +14,10 @@ Request headers 欄位(該功能屬 beta、其帳號未開放),Service Token 送
 | 步驟 | 誰做 | voice | stackchan | anchor(mcp) | hands |
 |---|---|:--:|:--:|:--:|:--:|
 | ① 新增 token 路徑,舊路徑保留 | 工作窗 | ✅ | ✅ | ✅ | ✅ |
-| ② claude.ai **新增**(非取代)connector | 糯糯 | ☐ | ☐ | ☐ | ☐ |
-| ③ 實測新路徑可用 | 工作窗 | ☐ | ☐ | ☐ | ☐ |
-| ④ 移除舊 connector | 糯糯 | ☐ | ☐ | ☐ | ☐ |
-| ⑤ 關閉舊路徑 | 工作窗 | ☐ | ☐ | ☐ | ☐ |
+| ② claude.ai **新增**(非取代)connector | 糯糯 | ✅ | ✅ | ✅ | ✅ |
+| ③ 實測新路徑可用 | 工作窗 | ✅ | ✅ | ✅ | ✅ |
+| ④ 移除舊 connector | 糯糯 | ✅ | ✅ | ✅ | ✅ |
+| ⑤ 關閉舊路徑 | 工作窗 | ✅ | ✅ | ✅ | ✅ |
 
 hands 於 9/2 07:32 由規劃窗裁定翻轉順序、提前執行(理由:它是唯一的 root shell 暴露)。
 
@@ -210,3 +210,94 @@ $ pytest security/tests/ -q
 ```
 
 (在 VPS 的 venv 跑,受測的 `mcp_path_alias.py` 與 repo 這份 md5 相同。)
+
+---
+
+## ⑤a 前置條件:把還指著舊路徑的消費者換掉(2026-09-02 08:38)
+
+規劃窗攔下的前置條件是對的:`alias` 層不分來源 IP,`MCP_LEGACY_PATH=0` 一設,
+任何還在打 `/mcp` 的本機消費者都會一起斷。
+
+### 工單點名的一處:`app/claude.py` 的 `mcp_servers`
+
+`anchor` 與 `stackchan` 兩個 URL 改為讀密鑰檔。要注意 **runtime 與 legacy 兩棵樹都要改**:
+`/srv/chatnest-next/runtime/version-bridge-app/app/claude.py` 是活的,
+而 `/srv/chatnest/full-stack/app/claude.py` 才是 `version_bridge_runtime_patch.py` 的輸入
+——只改前者,下次重建就退回舊路徑。
+(`toy` / `nest` / `daifugo` 三個是直接熱修 runtime 檔加上去的,不在 patch 腳本裡。
+patch 腳本的 claude 錨點是 touch guard / stream signature / submit / tools note,
+都不碰 `mcp_servers` 那行與模組常數區,所以本次改動不會讓它拒絕套用。)
+
+### 工單沒點到的第二處:`app/memory_bridge.py` 的 `ANCHOR_URL`
+
+這是實測抓到的。第一次驗證後看 anchor 的存取日誌,發現 **08:38:54 有 8 筆走舊 `/mcp`**,
+時間正好是 cn 那一輪開場——來源是 `memory_bridge.py` 的
+`ANCHOR_URL = "http://127.0.0.1:8765/mcp"`,即每輪的檔案室注入(`wakeup_context`)
+與留言已讀標記。若照原計畫直接進 ⑤b,cn 不會整個斷,但會**每輪安靜地失去記憶注入**
+——比整個斷更難發現。
+
+補完後同一段流量(8 筆)整批移到新路徑,重啟後舊路徑流量歸零。
+
+### 密鑰放哪:不為了方便打洞
+
+工單寫「密鑰從 `/root/<svc>/mcp_path_key.txt` 讀檔」,但 **bridge 以 `chatagent` 身份跑,
+而 `/root` 是 0700** —— 實測 `Permission denied`。那是 Phase 0 降權刻意立的邊界,
+不該為了這件事在 `/root` 開 ACL。
+
+改成把 anchor 與 stackchan 這兩把(唯二有第二個消費者的)**移到**
+`/srv/chatnest-next/runtime/mcp-keys/`(目錄 0750 root:chatagent、檔案 0640),
+作為單一正本——不是副本,沒有兩份會走鐘的問題。voice 與 hands 的密鑰留在原處,
+因為沒有第二個消費者。
+
+移檔時服務不必重啟:密鑰在啟動時就讀進記憶體了,移檔不影響執行中的進程;
+但**服務端的 `serve()` 路徑必須同時改掉**,否則下次重啟會在舊位置生一把新密鑰,
+把 connector 打掉。這兩件事在同一個動作裡完成。
+
+helper 只有一份定義,放在 `memory_bridge.py`(`claude.py` 本來就 import 它,
+方向天然),`claude.py` 直接 import 使用。讀不到密鑰時退回舊路徑並記 error log
+——過渡期還能用,⑤b 之後會 404,那行 log 就是唯一線索。
+
+### ⑤a 驗收
+
+* bridge 重啟兩次,`conversations.latest_session_id` **逐字未變**(重啟不換窗)
+* 用系統既有的 wake trigger 讓 cn 實際跑一輪:`completed: true`,
+  anchor 於 08:42:02 收到 `CallToolRequest`(真的呼叫了 `search_memory`)
+* anchor / stackchan 的存取日誌:修好之後**舊路徑流量 0 筆**
+* 以 `chatagent` 身份 import `memory_bridge` 印出 `ANCHOR_URL`,確認是
+  `/mcp-<KEY>` 而非退回 fallback
+
+### 順帶一提(不影響 ⑤b)
+
+`scripts/legacy_preview_smoke.py:226` 的預設值也是舊路徑,但它先讀環境變數
+`ANCHOR_MCP_URL`,可覆寫。是 smoke 腳本不是生產路徑,列為後續清理。
+
+---
+
+## ⑤b 關閉舊路徑(2026-09-02 08:43–08:45)
+
+四支各加一個 systemd drop-in:
+
+```
+/etc/systemd/system/<svc>.service.d/legacy-path.conf
+[Service]
+Environment=MCP_LEGACY_PATH=0
+```
+
+回滾 = 刪掉 drop-in + `daemon-reload` + 重啟。
+
+hands 照①的規則辦:等空閒才重啟、`systemd-run` 獨立 cgroup 探測、
+另加「新路徑不通就自動拿掉 drop-in 讓舊路徑復活」的回滾。
+
+| 服務 | 舊 `/mcp` | 新 `/mcp-<KEY>` | 錯的密鑰 |
+|---|:--:|:--:|:--:|
+| anchor | **404** | 200 | 404 |
+| stackchan | **404** | 200 | 404 |
+| voice | **404** | 200 | 404 |
+| hands | **404** | 200 | 404 |
+
+四把密鑰的 md5 重啟前後相同(沒有被重新生成)。voice 的播放器頁 `/` 仍 200。
+規劃窗這條線的活證明:本表的 hands 那列是在關閉舊路徑**之後**由 `exec_vps` 取得的。
+
+一個小插曲值得記:收尾時我又從 `exec_vps` 內部打 hands,拿到 `000/000/000`
+——同一個自我阻塞假象。權威數字來自獨立 cgroup 的施工腳本。這個坑會反覆出現,
+所以規則要寫進檢查表而不是靠記得。
