@@ -229,7 +229,7 @@ scripts/build_version_bridge_runtime.py.bak-b1-1788362651
 
 ---
 
-## 補件一(2026-09-04):三支完整檔進 repo
+## 補件一(2026-09-05):三支完整檔進 repo
 
 B1 覆核指出「版控」在當時是空話——`/srv/chatnest-next` 的 git 沒有任何 commit,
 `bridge-extras/autonomy_tool.py` 與兩支 build/patch 腳本從未 commit 到任何地方,
