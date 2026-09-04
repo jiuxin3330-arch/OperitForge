@@ -163,3 +163,39 @@ repo 這邊收了 `GS-28-29.added.py`(附加在 `golden_runner.py` 的
 
 部署層另外動了一項:`health/extract_dumps/` 的 owner 從 root 改為 nestmemory
 (見上),那是落檔能不能寫的前提,回滾程式碼不需要動它。
+
+---
+
+## 覆核裁定(2026-09-03 08:30)——VERIFIED,結案
+
+裁定全文附在工單檔尾(`/root/nest-memory/TICKET_K_extractor_container_drop.md`)。要點:
+
+* golden 正式版 **15/15**;符號位置與本份相符(`_fail_batch` 353、`ContainerDropError` 367、`commit_batch` 376)。
+* **先破後立由規劃窗自己做**:暫存複本把 `raise ContainerDropError(...)` 換成 pass →
+  `GS-29 FAIL:status=committed, container_drops=1`,正是 9/2 那天的病徵,其餘 14 綠。**鎖對地方了。**
+  規劃窗誠實記下前兩次反向對照沒紅是它自己的 harness 錯(golden_runner 硬插 `/srv/nest-memory/bin`
+  到 sys.path,暫存複本根本沒被載入;改路徑又弄斷 `projection` import)。
+  「拆掉修復必須紅」這條對驗證者自己也適用——綠得太快先懷疑自己。
+* 「落檔在生產本來就是壞的」(目錄 root:root、nestmemory 寫不進、except 自吞)判定**屬實且重要**,
+  收進檢查表為「施工者身在被施工的系統之內」的**第五種形狀:身分不同**。
+* 「改到無人看管的排程腳本,上線前用複本真跑一次,不只靠 golden」**採納為做法**。
+* **壞 JSON 的 regex 救援:規劃窗同意工作窗拒做並撤回該項,自工單刪除、不另立單。**
+  採信的理由是本份寫的那條:檔案室的東西要被當成事實引用,寧可明晚重抽一次完整的,
+  也不要今晚存進一筆半真的。第 2 點上線後壞批會自動重抽,救碎片的收益趨近零。
+
+## 補件(2026-09-04):prod 完整檔進 repo
+
+覆核要求比照 `hotfix-20260901/prod/` 慣例收生產現行版逐位元副本。
+
+| 檔案 | 生產路徑 | md5 |
+|---|---|---|
+| `prod/extractor.py` | `/srv/nest-memory/bin/extractor.py` | `9d2ec4df38bc50690fbe7c68c1f73346` |
+| `prod/obs_extractor_switch.py` | `/srv/nest-memory/bin/obs_extractor_switch.py` | `949cb743a4832161d5cb841513154027` |
+
+`prod/` 是副本不是新的事實來源;生產仍在 `/srv/nest-memory/bin/`。
+重新部署時以 `prod/` 為準覆蓋回去,md5 對得上就代表沒有漂移。
+兩檔取回後逐位元核對過 md5 與檔案大小(23941 / 5090 bytes),並確認符號行號與上面裁定所記相同。
+
+`golden_runner.py` 沒有收完整檔:改動只有附加在 `run_parser_cases()` 尾端的 GS-28/29,
+已以 `GS-28-29.added.py` 片段收於本目錄(md5 `2c0d53383f4f36ff21d1048c571ff548`)。
+它是驗收工具不是生產路徑,漂移不會靜默傷到檔案室。

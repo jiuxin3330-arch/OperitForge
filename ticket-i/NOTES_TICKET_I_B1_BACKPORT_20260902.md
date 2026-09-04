@@ -226,3 +226,32 @@ scripts/build_version_bridge_runtime.py.bak-b1-1788362651
    讓 main.py 的哨兵排列歸位、manifest sha 重簽。要重啟 bridge,請排時間。
 3. `usage.py` 的 TOKEN_FILE 可以改用 `$HOME`(與 `_ARTIFACT_DIR` 一致),
    但那會動到 runtime,是獨立的一條。
+
+---
+
+## 補件一(2026-09-04):三支完整檔進 repo
+
+B1 覆核指出「版控」在當時是空話——`/srv/chatnest-next` 的 git 沒有任何 commit,
+`bridge-extras/autonomy_tool.py` 與兩支 build/patch 腳本從未 commit 到任何地方,
+OperitForge 這邊只有片段。(乙)的意義是「資產在版控」,而現況只做到「資產在磁碟上另一個目錄」。
+護欄本身也一樣只活在 VPS 上——它是這顆雷的唯一保險。
+
+比照 `hotfix-20260901/prod/` 慣例,收生產現行版逐位元副本:
+
+| 檔案 | 生產路徑 | md5 |
+|---|---|---|
+| `prod/autonomy_tool.py` | `/srv/chatnest-next/bridge-extras/autonomy_tool.py` | `76a625380746f00adadb3c5af86aeed4` |
+| `prod/build_version_bridge_runtime.py` | `/srv/chatnest-next/scripts/build_version_bridge_runtime.py` | `fe907da60af2e3e72af39305fb1d0311` |
+| `prod/version_bridge_runtime_patch.py` | `/srv/chatnest-next/scripts/version_bridge_runtime_patch.py` | `d9e12a7a55154c236ddead43629dce86` |
+
+`autonomy_tool.py` 的 md5 與 B1 覆核親手核對的三份(bridge-extras / staging / runtime)相同,
+也就是這份副本同時等於現行 runtime 那一份。
+三檔取回後逐位元核對過 md5 與檔案大小(13104 / 14234 / 39933 bytes)。
+
+`prod/` 是副本不是新的事實來源;生產仍在 `/srv/chatnest-next/`。
+重新部署或災後重建時以 `prod/` 為準覆蓋回去,md5 對得上就代表沒有漂移。
+
+既有的 `build_guard.added.py` 保留:它帶著「三處接線各插在哪」的說明,
+是給讀的人看接法用的,完整檔則是給機器對帳用的。兩者並存不衝突。
+
+**這一項完成後,TICKET-I 才進入「可重 build」狀態**(B2 與收尾重 build 仍排 9/15 後)。
