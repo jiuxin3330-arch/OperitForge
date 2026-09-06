@@ -1,0 +1,31 @@
+--- /srv/chatnest-next/workers/screenshot/worker.mjs.bak-slim3-1788707128	2026-08-07 15:01:49.131879224 +0800
++++ /srv/chatnest-next/workers/screenshot/worker.mjs	2026-09-06 23:06:51.312961880 +0800
+@@ -3,6 +3,10 @@
+ const backend = (process.env.CHATNEST_NEXT_URL || "http://127.0.0.1:8790").replace(/\/$/, "");
+ const token = process.env.SCREENSHOT_WORKER_TOKEN || "";
+ const intervalMs = Number(process.env.SCREENSHOT_POLL_MS || "15000");
++// 第三批 ②(2026-09-06):worker 由 systemd .path 在 backend 派 job 時拉起,
++// 不再開機常駐。空閒滿 idleExitMs 就正常退出(exit 0),下一個 job 會再把它叫起來。
++// 這段時間仍留著是為了讓連續幾張截圖共用同一個 chromium,不必每張重開。
++const idleExitMs = Number(process.env.SCREENSHOT_IDLE_EXIT_MS || "60000");
+ const profileDir = process.env.SCREENSHOT_PROFILE_DIR || new URL("./profile", import.meta.url).pathname;
+ const authOrigins = new Set(
+   (process.env.SCREENSHOT_AUTH_ORIGINS || backend)
+@@ -94,13 +98,17 @@
+   deviceScaleFactor: 1
+ });
+ try {
++  let idleSince = null;
+   while (true) {
+     const response = await request("/api/v2/internal/screenshots/next");
+     if (response.status === 204) {
++      if (idleSince === null) idleSince = Date.now();
++      if (Date.now() - idleSince >= idleExitMs) break;
+       await new Promise((resolve) => setTimeout(resolve, intervalMs));
+       continue;
+     }
+     if (!response.ok) throw new Error(`worker poll failed: ${response.status}`);
++    idleSince = null;
+     await runJob(context, await response.json());
+   }
+ } finally {

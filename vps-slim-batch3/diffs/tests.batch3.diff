@@ -1,0 +1,157 @@
+--- test_dashboard_local_store.py.bak-slim3	2026-08-05 23:06:08.198907434 +0800
++++ test_dashboard_local_store.py	2026-09-06 23:23:56.974077191 +0800
+@@ -137,8 +137,9 @@
+         headers=auth,
+         json={"author": "coco", "date": "2026-08-02", "emoji": "🙂", "note": "owner"},
+     )
+-    assert mood.status_code == 200
+-    assert mood.json()["moods"][0]["author"] == "nuonuo"
++    # 2026-08-25 糯糯裁定:emoji 通道關閉,身心日曆只收她自己畫的表情(emotions 通道)。
++    assert mood.status_code == 410
++    assert "emotions" in mood.json()["detail"]
+     cycle = client.post(
+         "/api/v2/dashboard/bodymind/cycle/toggle",
+         headers=auth,
+--- test_dashboard_tool_api.py.bak-slim3	2026-08-05 23:11:29.817885808 +0800
++++ test_dashboard_tool_api.py	2026-09-06 23:23:56.974077191 +0800
+@@ -171,15 +171,9 @@
+             "author": "nuonuo",
+         },
+     )
+-    assert mood.status_code == 200
+-    assert mood.json()["moods"] == [
+-        {
+-            "author": "mumu",
+-            "emoji": "blue",
+-            "note": "synthetic mood",
+-            "at": mood.json()["moods"][0]["at"],
+-        }
+-    ]
++    # 2026-08-25 糯糯裁定:emoji 通道關閉(見 main.py 的 410)。
++    assert mood.status_code == 410
++    assert "emotions" in mood.json()["detail"]
+     calendar = client.get(
+         "/api/v2/tools/dashboard/bodymind/calendar?month=2026-08",
+         headers=HEADERS,
+@@ -200,7 +194,8 @@
+             """SELECT details_json FROM audit_events
+                WHERE action IN ('dashboard.note_create_tool','dashboard.mood_update_tool')"""
+         ).fetchall()
+-    assert dict(row) == {"author": "mumu", "note": "synthetic mood"}
++    # 通道關了就真的沒有寫進去——410 不能只是回應層面的謝絕。
++    assert row is None
+     assert "synthetic note content" not in json.dumps(
+         [row["details_json"] for row in audit_rows], ensure_ascii=False
+     )
+--- test_gallery_and_screenshots.py.bak-slim3	2026-08-08 01:12:31.988846387 +0800
++++ test_gallery_and_screenshots.py	2026-09-06 23:24:25.945243001 +0800
+@@ -655,7 +655,9 @@
+ 
+ 
+ def test_screenshot_worker_uses_mobile_ai_view_before_navigation():
+-    source = Path('workers/screenshot/worker.mjs').read_text(encoding='utf-8')
++    # 相對路徑會依 pytest 從哪裡起跑而變;鎖成相對於這支測試檔的絕對路徑。
++    worker = Path(__file__).resolve().parents[2] / 'workers' / 'screenshot' / 'worker.mjs'
++    source = worker.read_text(encoding='utf-8')
+     assert 'viewport: { width: 390, height: 844 }' in source
+     assert 'aiViewOrigins.has(url.origin)' in source
+     assert 'url.searchParams.set("as", "non")' in source
+--- test_version_bridge_runtime_patch.py.bak-slim3	2026-09-02 23:30:15.161304383 +0800
++++ test_version_bridge_runtime_patch.py	2026-09-06 23:24:25.946243007 +0800
+@@ -53,7 +53,7 @@
+ def test_wake_tool_runtime_patch_uses_durable_next_owned_schedule() -> None:
+     source = (LEGACY / 'wake_tool.py').read_text(encoding='utf-8')
+     patched = patch_wake_tool_source(source)
+-    assert 'Path("/root/chatnest-next/data/version-bridge/wake_schedule.json")' in patched
++    assert 'Path("/srv/chatnest-next/data/version-bridge/wake_schedule.json")' in patched
+     assert 'CHATNEST_VERSION_BRIDGE_WAKE_SCHEDULE_V1' in patched
+     assert patch_wake_tool_source(patched) == patched
+     compile(patched, 'wake_tool.py', 'exec')
+@@ -80,8 +80,8 @@
+     assert 'get_registry().submit(\n        conv_id,\n        query_message,' in patched
+     assert '"event": "prompt_meta"' in patched
+     assert '"system_prompt_fingerprint": fingerprint' in patched
+-    assert 'python3 /root/chatnest-next/scripts/mumu_tool_help.py list' in patched
+-    assert 'python3 /root/chatnest-next/scripts/mumu_tool_help.py show <分類>' in patched
++    assert 'python3 /srv/chatnest-next/scripts/mumu_tool_help.py list' in patched
++    assert 'python3 /srv/chatnest-next/scripts/mumu_tool_help.py show <分類>' in patched
+     assert 'work-mail、versions、screenshot、desire、memory' in patched
+     assert 'StackChan camera 是實體 StackChan 鏡頭「拍照」' in patched
+     assert 'stackchan_camera_check 代替網頁截圖' in patched
+@@ -227,7 +227,7 @@
+         patch_main_artifact_dir_source("_ARTIFACT_DIR = something_else()\n")
+ 
+ 
+-RUNTIME = Path('/root/chatnest-next/runtime/version-bridge-app')
++RUNTIME = Path('/srv/chatnest-next/runtime/version-bridge-app')
+ 
+ 
+ def test_b1_usage_token_backport_reproduces_the_runtime() -> None:
+--- test_version_bridge_build_guard.py.bak-slim3	2026-09-02 23:35:50.617001349 +0800
++++ test_version_bridge_build_guard.py	2026-09-06 23:24:25.946243007 +0800
+@@ -149,7 +149,10 @@
+ RUNTIME = Path("/root/chatnest-next/runtime/version-bridge-app")
+ 
+ # TICKET-I B2(9/15 之後):人格敏感區,這一輪不碰。
+-B2_PENDING = {"app/claude.py", "app/easter_egg.py", "PERSONA.md"}
++# models.json 是反方向的漂移:legacy 源碼領先 runtime(多了 claude-fable-5-1、
++# 把 claude-opus-4-8 降為 non-primary),屬「待部署」不是「待回填」——見 TICKET-I 補件二。
++# B 段收尾那次授權重 build 會把它帶上去,在那之前它出現在漂移清單裡是正確的。
++B2_PENDING = {"app/claude.py", "app/easter_egg.py", "PERSONA.md", "models.json"}
+ 
+ 
+ def _sentinel_insensitive(text: str) -> tuple[str, ...]:
+--- test_easter_egg_migration.py.bak-slim3	2026-08-02 05:59:46.935675651 +0800
++++ test_easter_egg_migration.py	2026-09-06 23:16:09.729505102 +0800
+@@ -5,7 +5,16 @@
+ from pathlib import Path
+ 
+ from app.db import connect
+-from scripts import migrate_legacy_easter_eggs as migration
++import sys
++from pathlib import Path as _Path
++
++# 這支 migration 腳本住在專案根的 scripts/,不是 backend/scripts/;
++# 從 backend/ 起跑時 `scripts` 會解析到後者而 import 不到(collection error)。
++_SCRIPTS = _Path(__file__).resolve().parents[2] / "scripts"
++if str(_SCRIPTS) not in sys.path:
++    sys.path.insert(0, str(_SCRIPTS))
++
++import migrate_legacy_easter_eggs as migration  # noqa: E402
+ 
+ 
+ def write_source(path: Path) -> None:
+--- test_owner_write_and_legacy_media_growth.py.bak-slim3	2026-08-05 23:06:08.198907434 +0800
++++ test_owner_write_and_legacy_media_growth.py	2026-09-06 23:16:09.729505102 +0800
+@@ -4,7 +4,16 @@
+ import json
+ 
+ from app.db import connect, transaction
+-from scripts import migrate_legacy_media_growth as migration
++import sys
++from pathlib import Path as _Path
++
++# 這支 migration 腳本住在專案根的 scripts/,不是 backend/scripts/;
++# 從 backend/ 起跑時 `scripts` 會解析到後者而 import 不到(collection error)。
++_SCRIPTS = _Path(__file__).resolve().parents[2] / "scripts"
++if str(_SCRIPTS) not in sys.path:
++    sys.path.insert(0, str(_SCRIPTS))
++
++import migrate_legacy_media_growth as migration  # noqa: E402
+ 
+ 
+ def test_owner_diary_write_comment_update_delete_are_local_and_actor_forced(client, auth):
+--- conftest.py.bak-slim3	2026-09-02 09:50:56.780855363 +0800
++++ conftest.py	2026-09-06 23:24:51.006386838 +0800
+@@ -17,6 +17,11 @@
+     monkeypatch.setenv("CHATNEST_NEXT_BOOTSTRAP_PASSWORD", "correct horse battery staple")
+     monkeypatch.setenv("CHATNEST_NEXT_FAKE_MODE", "1")
+     monkeypatch.setenv("SCREENSHOT_WORKER_TOKEN", "worker-test-token")
++    # 派 job 會立一個觸發檔讓 systemd 把 screenshot worker 拉起來(第三批 ②)。
++    # 不指到 tmp 的話,跑測試就會把生產的 worker 叫起來對著生產 backend 空轉。
++    monkeypatch.setenv(
++        "CHATNEST_SCREENSHOT_TRIGGER", str(tmp_path / "screenshot-trigger" / "pending")
++    )
+     # 背景的 StackChan 對帳迴圈會掃這個目錄。不指到 tmp 的話,
+     # 測試啟動 app 就會把生產照片灌進測試資料庫。
+     monkeypatch.setenv("STACKCHAN_PHOTO_ROOT", str(tmp_path / "stackchan-photos"))

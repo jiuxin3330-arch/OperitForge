@@ -1,0 +1,10 @@
+[Unit]
+Description=Run ChatNest screenshot queue safety net every 30 minutes
+
+[Timer]
+OnCalendar=*:00,30
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,46 @@
+--- backend/app/main.py.bak-slim3-1788707128	2026-09-02 17:10:45.622377839 +0800
++++ backend/app/main.py	2026-09-06 23:24:51.005386832 +0800
+@@ -7802,6 +7802,35 @@
+     return {"ok": True, "message_id": message_id, "source": source}
+ 
+ 
++SCREENSHOT_TRIGGER_DEFAULT = "/srv/chatnest-next/data/screenshot-trigger/pending"
++
++
++def _screenshot_trigger_path() -> Path:
++    """呼叫時才讀,不在 import 時定案——否則測試 monkeypatch 不掉,
++    會替生產立觸發檔、把生產的 worker 叫起來空轉。"""
++    return Path(os.environ.get("CHATNEST_SCREENSHOT_TRIGGER", SCREENSHOT_TRIGGER_DEFAULT))
++
++
++def _signal_screenshot_worker(job_id: str) -> None:
++    """派 job 之後把觸發檔立起來,讓 systemd .path 把 worker 拉起來。
++
++    第三批 (2026-09-06) 之後 worker 不再常駐輪詢,所以這個檔沒立起來
++    就等於沒有人去跑這個 job。立不起來不擋 job 建立(job 仍在 queued,
++    安全網 timer 會撿走),但一定要留下痕跡:TICKET-K 的教訓是
++    except 自吞會讓壞掉的路徑沒有人發現。
++    """
++    try:
++        trigger = _screenshot_trigger_path()
++        trigger.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
++        trigger.touch()
++    except OSError as exc:
++        logger.warning(
++            "screenshot trigger 立不起來(job %s 仍在 queued,等安全網 timer):%s",
++            job_id,
++            exc,
++        )
++
++
+ def _queue_screenshot_request(*, url: str, requested_by: str, require_domain_approval: bool) -> JSONResponse:
+     parsed = urlparse(url)
+     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+@@ -7837,6 +7866,7 @@
+             (job_id, url, domain, "queued", requested_by, timestamp, timestamp),
+         )
+         audit(conn, requested_by, "screenshot.request", "screenshot_job", job_id, {"domain": domain})
++    _signal_screenshot_worker(job_id)
+     return JSONResponse({"state": "queued", "job_id": job_id}, status_code=202)
+ 
+ 

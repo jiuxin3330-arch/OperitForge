@@ -1,0 +1,9 @@
+# 第三批 ②(2026-09-06)安全網:每 30 分鐘數一次 queued job,有才立觸發檔。
+# 正常情況這支什麼都不做——它是為了「觸發檔那條路徑壞掉而沒人發現」才存在。
+[Unit]
+Description=ChatNest screenshot queue safety net
+After=chatnest-next.service
+
+[Service]
+Type=oneshot
+ExecStart=/root/ticket-vps-slim/screenshot_safety_net.sh

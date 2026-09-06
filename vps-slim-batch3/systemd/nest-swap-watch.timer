@@ -1,0 +1,9 @@
+[Unit]
+Description=Hourly memory/swap sample for the post-slim observation week
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

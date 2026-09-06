@@ -33,9 +33,13 @@
   **綠得太快先懷疑自己的量測,不要先相信結論。**(TICKET-K 覆核)
 - **改到無人看管的排程腳本,上線前用複本真跑一次,不只靠 golden。**
   明晚 03:30 沒有人在看,而改的正是那支腳本。(TICKET-K 覆核採納)
-- **量測工具的預設行為會偽造結論。** curl 送出前自行 `remove_dot_segments`,
-  讓 `/mcp-KEY/../mcp` 看起來像穿越成功;加 `--path-as-is` 送字面路徑全部 404。
-  測安全邊界要先關掉工具的貼心功能。(方案B)
+- **量測工具的預設行為會偽造結論。** 兩次形狀不同、道理一樣:
+  curl 送出前自行 `remove_dot_segments`,讓 `/mcp-KEY/../mcp` 看起來像穿越成功
+  (加 `--path-as-is` 送字面路徑後全部 404);`pgrep -af "chrome-headless-shell"`
+  匹配到自己那行 pgrep 的命令列,於是「閒置時沒有殘留進程」看起來是假的
+  (改用 `/proc/*/comm` 與 unit 的 `cgroup.procs` 重量:0 個)。
+  **探測會進自己的結果集**——第 1 種形狀的變體。測之前先問:這個工具替我做了什麼我沒要求的事?
+  (方案B、第三批 ②)
 - **不信自己的綠燈**:0.19 秒跑完的端到端測試要去查它到底跑了什麼,
   並把「產物必須是 patch 過的」寫成斷言。(TICKET-I A 段覆核記功)
 - 繞過迴圈直接呼叫函式,測到的是「沒有迴圈的世界」。(TICKET-H,規劃窗自述)
@@ -55,6 +59,11 @@
   只改 runtime 下次重建就退回。(方案B ①⑤)
 - **改底色/改樣式時 grep 同名 selector 的所有歷史層**:三層舊 CSS 各畫了一次 border,
   飽和底看不見、淺底現形。(v115)
+- **`disable` 擋不住 dbus/socket activation。** `disable` 只擋開機自啟。
+  `multipathd` 有 `multipathd.socket` 會把它叫回來;`fwupd`/`udisks2`/`upower` 是 dbus-activated,
+  停完當下是 inactive,幾十分鐘後有人查一次 dbus 就又活了(`fwupd` 甚至是 `static`,根本不能 disable)。
+  真的要停就 `mask`——建立指向 /dev/null 的 symlink,不刪任何檔案、`unmask` 即還原。
+  **停用之後隔一段時間再回頭看一次**,不要停完當下看到 inactive 就結案。(第三批 ①)
 - **不要為了方便打穿刻意立的邊界。** 密鑰放 `/root/` 而 bridge 以 chatagent 跑,
   正解是把密鑰移到雙方都讀得到的單一正本目錄,不是加 ACL。(方案B ②)
 

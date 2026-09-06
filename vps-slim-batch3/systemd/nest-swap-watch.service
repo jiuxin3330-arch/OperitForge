@@ -1,0 +1,10 @@
+# 第三批(2026-09-06)一週觀察:每小時記一列記憶體/swap 到 health/swap_watch.csv。
+# 以 nestmemory 跑,讓 health/ 底下的檔案身分一致(TICKET-K 第五種形狀)。
+[Unit]
+Description=Record memory and swap usage for the post-slim week
+
+[Service]
+Type=oneshot
+User=nestmemory
+Group=nestmemory
+ExecStart=/srv/nest-memory/bin/swap_watch.sh

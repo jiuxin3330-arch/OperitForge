@@ -1,0 +1,39 @@
+--- /srv/chatnest-next/scripts/legacy_preview_smoke.py.bak-slim3	2026-08-17 08:03:34.115632656 +0800
++++ /srv/chatnest-next/scripts/legacy_preview_smoke.py	2026-09-06 23:17:35.792960154 +0800
+@@ -19,6 +19,25 @@
+ import httpx
+ 
+ 
++MCP_KEY_DIR = os.getenv("MCP_KEY_DIR", "/srv/chatnest-next/runtime/mcp-keys")
++
++
++def _anchor_mcp_url(port: int = 8765, key_name: str = "anchor.key") -> str:
++    """方案 B(2026-09-02)之後,本機 MCP 端點在 /mcp-<KEY>,舊的 /mcp 已關。
++
++    密鑰讀檔不寫死(這支會進 git 與備份)。讀不到就退回舊路徑並在 stderr 說一聲
++    ——關掉之後那行警告會是唯一的線索,不能安靜地讓它 404。
++    """
++    try:
++        with open(os.path.join(MCP_KEY_DIR, key_name), encoding="utf-8") as fh:
++            key = fh.read().strip()
++    except OSError as exc:
++        print(f"[warn] MCP 密鑰讀不到({key_name}):{exc};退回舊路徑 /mcp", file=sys.stderr)
++        return f"http://127.0.0.1:{port}/mcp"
++    return f"http://127.0.0.1:{port}/mcp-{key}"
++
++
++
+ def free_port() -> int:
+     with socket.socket() as sock:
+         sock.bind(("127.0.0.1", 0))
+@@ -222,9 +241,7 @@
+                         **shape(response.json()),
+                     }
+ 
+-                anchor_url = os.getenv(
+-                    "ANCHOR_MCP_URL", "http://127.0.0.1:8765/mcp"
+-                )
++                anchor_url = os.getenv("ANCHOR_MCP_URL") or _anchor_mcp_url()
+                 anchor = httpx.post(
+                     anchor_url,
+                     headers={

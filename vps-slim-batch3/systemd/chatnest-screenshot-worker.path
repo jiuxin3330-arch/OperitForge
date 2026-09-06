@@ -1,0 +1,13 @@
+# 第三批 ②(2026-09-06):backend 派 job 時立觸發檔,這裡把 worker 拉起來。
+# 用 PathExists(狀態)而不是 PathModified(事件):事件會在 worker 執行期間漏掉,
+# 狀態不會——worker 退出時檔案若還在,systemd 會立刻再啟動一次。
+[Unit]
+Description=Start ChatNest screenshot worker when a job is queued
+After=chatnest-next.service
+
+[Path]
+PathExists=/srv/chatnest-next/data/screenshot-trigger/pending
+Unit=chatnest-screenshot-worker.service
+
+[Install]
+WantedBy=multi-user.target
