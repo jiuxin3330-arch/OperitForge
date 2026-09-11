@@ -64,6 +64,13 @@
   停完當下是 inactive,幾十分鐘後有人查一次 dbus 就又活了(`fwupd` 甚至是 `static`,根本不能 disable)。
   真的要停就 `mask`——建立指向 /dev/null 的 symlink,不刪任何檔案、`unmask` 即還原。
   **停用之後隔一段時間再回頭看一次**,不要停完當下看到 inactive 就結案。(第三批 ①)
+- **改到常駐服務的檔,必須在該服務真的重啟一次之後驗證,diff 對不算數。**
+  方案 B ⑤a「第二處」在 legacy `memory_bridge.py` 加了 `os.environ.get(...)` 卻沒 `import os`;
+  服務當時沒重啟,錯誤躺了九天,9/11 06:36 unattended-upgrade 升 libc/python 後 needrestart
+  替所有 python 服務重啟,它每 3 秒摔一次、摔了五千多次沒人知道:09:00 喚醒被壓、
+  模型清單退回 fallback、cn 四回合跑在 sonnet-4-6。規劃窗覆核只看了 diff,漏審。
+  至少要 `python -c "import <模組>"` 過,能重啟的就真的重啟一次看它活著;
+  另外「摔了五千次沒人知道」本身是第二個洞:常駐服務要有 crash loop 警報。(9/11 事故)
 - **不要為了方便打穿刻意立的邊界。** 密鑰放 `/root/` 而 bridge 以 chatagent 跑,
   正解是把密鑰移到雙方都讀得到的單一正本目錄,不是加 ACL。(方案B ②)
 
