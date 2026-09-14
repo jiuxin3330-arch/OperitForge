@@ -142,3 +142,75 @@ C 的取捨:只有 A 的話 cn 得「想到才查」,他現在連查都不查;�
 ## 下一步
 
 打樣(P1 的三個畫面:週視圖、課程卡＋日期卡、編輯課表)→ 糯糯蓋章 → 立 TICKET-M(P1)。P2 立單條件:R3 測試進單。P3 不立。
+
+---
+
+# v3(2026-09-14 晚)——回小踢第二輪;打樣已由糯糯蓋章
+
+小踢第二輪:R1–R4 主方向收、四個紅燈解除;P1 UI 通過;P1 資料層差「stable course identity」;P2 通過但 PATCH 權限要定;P3 方向通過、照原計畫等時間錨第二階段。
+糯糯:打樣通過不用改;學期是 **16 + 2 週**(16 週上課,後 2 週自主學習基本不到校);節次表另補。
+
+## R5. 課程主表(收回 v1「不做」的判斷)
+
+小踢說得對:「這門課的待辦」已經需要跨時段合併,course_name 又不是識別,slot 撐不住。最小化補一層:
+
+```
+timetable_terms      id, name(115-1), start_date, end_date(學期結束,owner 設), last_class_date(最後上課日,可空), note, created_at
+timetable_courses    id, term_id, name, teacher, color_key, note, created_at, updated_at
+timetable_slots      id, course_id(ON DELETE CASCADE), weekday(1-7), start_time, end_time, period_label(可空), room, created_at, updated_at
+timetable_overrides  id, date, slot_id(可空=整天), kind(cancel|holiday;可擴充), note, created_at
+schedule_events      既有表 + kind(event|homework|exam|report) + course_id(可空,ON DELETE SET NULL)
+                     + slot_id(可空,ON DELETE SET NULL) + course_name_snapshot;color_key 既有,建課程待辦時複製 course.color_key
+```
+
+- 課名／老師／顏色只存一份在 course;slot 只有時段與教室(教室可依時段不同,所以留在 slot)。
+- **course_id 是課程關聯**(課程卡列待辦、cn 查「這門課」都用它);**slot_id 只記「從哪個時段建立」**(預填、顯示「週二那堂」);**snapshot 是歷史顯示**。
+- 退掉一個時段:slot 刪、course 在,待辦全在。整門退選:course 刪 → slots CASCADE、events 的 course_id/slot_id SET NULL、snapshot 留。
+- 必測補一條:④ 同一 course 兩個 slot,從 slot A 建的待辦在 slot B 的課程卡也看得到;拿掉 course_id 只留 slot_id 要紅。
+
+## R6. 學期形狀:16 + 2
+
+- `last_class_date` = 第 16 週最後一天;`end_date` = 第 18 週最後一天(學期正式結束)。
+- 週視圖在 last_class_date 之後、end_date 之前:課仍畫但整週淡化並標「自主學習週」;runtime context 視同沒課(但仍會講日程與待辦)。
+- 編輯器:給「16 + 2」與「18」兩個快速選項算出日期,**只是填寫建議,寫入的是日期**,資料層無週數預設(與 R4 一致)。
+- 之前寫的「不知道就先設 18 週」撤回,改成上面這句。
+
+## R7. B 寫入權限(採小踢的細切,因為產品語意就是「幫我勾掉」)
+
+| 對象 | cn 可做 |
+|---|---|
+| cn 自己建立的 event | 改允許欄位(title/date/note/done/stamp;kind 與 course_id 建立後不可改) |
+| Owner 建立的 event | **只能改 `done`**,且只在 Owner 明確要求時;title/date/course/note 一律 403 |
+| timetable 本體(terms/courses/slots/overrides) | 無 tool 寫入路由 |
+
+- 後端實作:`PATCH /api/v2/tools/schedule/{id}` 對 owner-owned event 的 body 只接受 `{done}`;帶其他欄位整筆拒絕(不是靜默忽略)。每次 tool 寫入 `audit(...)` 記 actor=mumu。
+- 測試:mumu token PATCH owner event `{done:true}` → 200;`{title}` → 403;`{done:true,title}` → 403。
+- 說明書(P2)明寫:「她建的待辦你只能幫她打勾,而且要她說了才勾」。
+
+## R8. runtime context 留短期稽核軌跡(不是記憶)
+
+- 不進 conversation raw、不進 memory raw、extractor 永遠看不到(GS-RC-1 保留)。
+- 另寫 `runtime_context_trace`(SQLite 表或 `health/runtime_context.jsonl`):`ts, session_id, trigger_reason, sources[], rendered_context, builder_version`,保留 30 天自動清。
+- 用途只有一個:cn 突然說「等等不是要上色彩學」時,查那輪系統到底塞了什麼。時間錨現在有沒有同樣的軌跡?——**列入時間錨第二階段的檢查項**,兩者共用同一張表。
+
+## R9. 60 字之前先定取捨
+
+優先序(最多 2–3 個事實,60 字是最後保險):
+1. 現在正在發生的課／行程 → 2. 下一堂課 → 3. 24 小時內到期 → 4. 今天其他日程 → 5. 明天第一堂／最近一個待辦。
+同優先序內依時間先後。輸出仍是一段話。
+
+## R10. 文件同步(小踢抓到的自打架)
+
+- 正文 §4 表格 C 那格改為:「由 runtime context builder 統一持有觸發條件(即時間錨那套);『下一堂前 10 分鐘』不寫死、預設關;P3,等時間錨第二階段驗收」。
+- 正文 §6 第 2 題「不知道就先設 18 週」改為 R6。
+- 技術附錄 schema 以 R5 為準(v1 附錄作廢)。
+
+## 蓋章狀態
+
+- P1 UI/UX:小踢通過、糯糯打樣蓋章 ✅
+- P1 資料層:R5 補完,待小踢第三輪確認
+- P2:R7 定案,待小踢確認
+- P3:方向通過,等時間錨第二階段
+- 等糯糯:節次表(圖沒傳到,請用文字補)
+
+TICKET-M 草稿已寫(`tickets/TICKET_M_timetable_p1.md`),小踢第三輪蓋章即生效。
