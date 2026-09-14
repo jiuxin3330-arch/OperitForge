@@ -85,3 +85,60 @@ C 的取捨:只有 A 的話 cn 得「想到才查」,他現在連查都不查;�
 - C(隱藏脈絡注入)的風險:語氣接縫、注入時機、與時間錨合併的寫法。
 - cn 該知道到什麼粒度?(只需要「現在在上課」還是要教室老師?)
 - 我有沒有漏掉大一生活裡課表以外、同樣讓 cn 搞不清楚的東西?
+
+---
+
+# v2(2026-09-14)——回小踢第一輪交叉審核
+
+小踢裁定:P1 有條件通過可進打樣;P2 方向通過需確認端點權限;P3 暫緩,等併入 Time Context。
+🟢 全收。🟡 六條全收、寫進規格。🔴 四條逐一回答如下,前兩條是他點名下一輪必答的。
+
+## R1. slot_id 與歷史待辦:課表改了,舊待辦不能跟著變
+
+規則:**待辦的課程資訊在建立當下快照,之後只有使用者親手改這筆待辦才會變。**
+
+- `schedule_events` 加三欄:`kind`(既定)、`slot_id`(可空,`ON DELETE SET NULL`)、`course_name_snapshot`(建立時複製自 slot)。
+  顏色沿用既有 `color_key`,建立時複製 slot 的顏色,之後也不跟 slot 連動。
+- 顯示規則:待辦卡永遠顯示 `course_name_snapshot`,**不顯示教室**(作業不需要教室;教室是課的屬性不是待辦的)。
+- `slot_id` 只用來「從課程卡列出這門課的待辦」與「新增待辦時預填」;它不是歷史真相,快照才是。
+- 退選(加退選到 9/21,真的會發生):slot 刪除 → `slot_id` 變 NULL、快照留著,待辦照常顯示「構圖作業」。
+- 課表本體的歷史(上週那間教室是 A301 不是 A305)P1 **不版本化**:週視圖對學期內任何一週都畫「現在的 slot」。
+  這是明寫的已知限制;真要做,正解是 slot 加 `valid_from/valid_to`,同一招也順便解永久調課。不在 P1。
+- 必測(先破後立):① 改 slot 課名/教室/顏色 → 既有待辦三者不變;② 刪 slot → 待辦仍在、`slot_id` 為 NULL、課名仍顯示;
+  ③ 從課程卡新增待辦 → 快照等於當下 slot。拿掉快照欄位的複製那行,①③ 要紅。
+
+## R2. C 併入既有 Time Context,不另造 schedule injection
+
+同意小踢:**不再有「課表注入」這個東西**。改成:
+
+- 現有時間錨(B++ 第一階段)的產生器升格為 `runtime_context_builder`,來源可插:`time`(既有)、`timetable`、`schedule_due`。
+- **輸出只有一段話**、無標題無標籤,例:「今天週二 10:00。10:10 有色彩學(B204);週四要交構圖作業。」
+  今天沒課時不說「今天沒課」,說「今天沒課;14:00 看牙;明天 10:10 有色彩學」——沒課 ≠ 沒日程,課表不能把 cn 的世界縮成學校。
+- 觸發條件**由 builder 統一持有**,就是時間錨那套(新 session／≥3h／跨日／compaction 後;輕量錨 ≥30 分鐘旗標)。
+  「下一堂前 10 分鐘」不寫死;之後若要,是 builder 的一個可調參數(`class_boundary_lead_min`),預設關。
+- 粒度:課名 + 時間 + 教室,不含老師。老師在 `GET /api/v2/tools/timetable` 完整資料裡,cn 被問再查。runtime context ≠ 整份資料。
+- 長度上限:時間那句之外 ≤ 60 字;超過就只留「現在／下一堂」與最近一筆到期。
+- 它是 ephemeral:走時間錨同一條隱藏脈絡通道(`time_anchor_state` 那套,不進 raw、不進 messages)。
+  Extractor 必須看不到或看到也不抽:golden 加 GS-RC-1「runtime context 段存在 → 零 event」,防止系統把自己塞的脈絡再寫回記憶。
+- 時機:P3,而且要等時間錨第二階段(輕量錨)糯糯驗收後一起定,因為兩者共用 builder。
+
+## R3. P2 權限落在後端,不靠說明書
+
+- cn 的 token(`require_mumu_tool`)只能打:`GET /api/v2/tools/timetable`、`GET /api/v2/tools/schedule/today`、
+  既有 `POST/PATCH /api/v2/tools/schedule`(可帶 `kind`/`slot_id`;PATCH 仍限 `mumu_owned_only`)。
+- 課表本體(`/api/v2/timetable/*` terms/slots/overrides 的寫入)只掛 owner principal;**不存在** `/api/v2/tools/timetable` 的 POST/PATCH/DELETE 路由。
+- 測試:拿 mumu token 打課表寫入路由要 404/403;斷言路由表裡沒有那條(TICKET-H 的教訓:斷路由不斷狀態碼)。
+
+## R4. 其他收下的規則(寫進規格)
+
+- `timetable_overrides.kind` 是可擴充枚舉;P1 只實作 `cancel`(單堂)與 `holiday`(整天,`slot_id` NULL);不做調課、補課、單雙週。
+- `course_name` 不是課程識別;關聯一律走 `slot_id`。
+- 時間語意:`schedule_events.date` = 事情發生/到期日(effective),`created_at` = 系統何時知道(recorded)。
+  cn 週一幫她記「週四交構圖」→ date=週四、created_at=週一。timetable 同理(`updated_at` 是改課表的時間,不是課的時間)。
+- 學期結束日由 owner 在編輯器設定,資料層不塞 18 週預設;編輯器可以「建議」但不寫入。
+- 節次:學校有正式節次表就「節次 + 實際時間」都存(`period_label` + `start/end_time`),沒有就只存時間。仍等糯糯給節次表。
+- 說明書的 `schedule` 分類跟 P2 的工具端點同一批開,不為 9/15 讓資料層等。
+
+## 下一步
+
+打樣(P1 的三個畫面:週視圖、課程卡＋日期卡、編輯課表)→ 糯糯蓋章 → 立 TICKET-M(P1)。P2 立單條件:R3 測試進單。P3 不立。
