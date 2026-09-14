@@ -264,3 +264,70 @@ swap 一週持平,VPS_AUDIT 已蓋章。swap_watch 續記一週作背景,之後�
 - 沒有節次表的學校:同樣規則,用 30 分鐘為格、只畫有課的時段、空段折疊。
 - 測試:先破後立——加一門週六早上的課,axis 要多出 1–4 節且中段折疊;刪掉它,axis 只剩 11–14 節。
 打樣改成一–六、上午 + 晚上兩段。
+
+---
+
+# v5(2026-09-15)——回小踢第三輪;P1 綠燈,TICKET-M 生效
+
+小踢第三輪:R5–R10 全收;立單前三個 schema 修正,補進 TICKET-M 即正式綠燈、無需第四輪。三件全收,另三條文件修正也做了。
+
+## R12. 節次表是資料,不是前端常數(取代 v4 的 `periods_json`)
+
+```
+timetable_periods  id, term_id(ON DELETE CASCADE), period_no, label, start_time, end_time, created_at
+                   UNIQUE(term_id, period_no)
+```
+- period 是**輸入模板**:新增 slot 選第 11 節 → 查 periods 預填 start/end → **slot 仍保存實際時間**。某堂課特殊延長只改 slot,不動節次表。
+- 週視圖時間軸(R11 補)以 periods 為格;無 periods 的學期退回 30 分鐘格。
+- 糯糯的 14 節作為測試 fixture 與編輯器「貼上節次表」的解析範例(每行「第N節 HH:MM–HH:MM」)。
+
+## R13. overrides 的歸屬與刪除語意鎖死
+
+```
+timetable_overrides  id, term_id(ON DELETE CASCADE), date, slot_id(可空), kind(cancel|holiday), note, created_at
+  CHECK ((kind='holiday' AND slot_id IS NULL) OR (kind='cancel' AND slot_id IS NOT NULL))
+  slot_id FK → timetable_slots ON DELETE CASCADE   ← cancel 隨 slot 一起消失,絕不 SET NULL
+```
+- 小踢抓的坑:單堂 cancel 的 slot 被刪 → 若 SET NULL 就變成「整天」。CHECK + CASCADE 讓這個狀態不可能存在。
+- 測試:先破後立——刪掉 CHECK 後插入 `cancel + NULL` 要能進(證明 CHECK 在擋);恢復後同一筆要 IntegrityError。刪 slot 後對應 cancel 列數為 0、holiday 列不動。
+
+## R14. 課程待辦可以只屬於課、不屬於某一堂
+
+- `POST/PATCH /api/v2/schedule` 與 `/api/v2/tools/schedule` 正式接受 `kind`、`course_id`、`slot_id`(可空)。
+- 從課程卡某堂時段新增:帶 course_id + slot_id;從 DaySheet 選「構圖」新增:只帶 course_id。
+- 驗證:`slot_id` 若給,必須屬於該 `course_id`(否則 422);`kind` 為 homework/exam/report 時 `course_id` 必填;`kind=event` 時兩者必須為 NULL。
+- 快照仍由後端從 course 複製(不信任前端傳的課名)。
+
+## R6 補測
+
+`last_class_date < date <= end_date`:固定課表**不產生 occurrence**(week 端點 slots 為空、`self_study=true`),schedule_events/待辦照常;拿 `end_date` 當 recurrence 終點要紅。
+
+## R8 文字統一
+
+現況:每輪只記 `system_prompt_fingerprint`,查不到 cn 當時看見哪句。目標(P3):`runtime_context_trace` 短期保存實際 `rendered_context`(30 天自動清)。文件一律寫「現況 → 目標」。
+
+## R10 再清一次殘影
+
+v2 R2 的「C 要跟時間錨併成同一段文字」、正文 C 格「併進既有時間提示」**作廢**。定案:
+```
+Runtime Context Builder(既有 parts 組裝)
+├─ time sentence(_turn_time_context,照它自己的條件)
+└─ schedule sentence(_schedule_context 的後繼,每輪)
+同一組裝、同一隱藏通道;各自一句、相鄰;不融合成一句。
+```
+P3 驗收另記一條(小踢):提供 schedule context ≠ 暗示 cn 每輪都要提它;它是「可用的環境資料」不是「這輪的主題」。P3 golden 要有「有課表脈絡但話題無關 → 不主動提課」的案例。
+
+## 定案 schema(工作窗以此為準)
+
+```
+timetable_terms      id, name, start_date, end_date, last_class_date(可空), note, created_at, updated_at
+timetable_periods    id, term_id⇘CASCADE, period_no, label, start_time, end_time, created_at  UNIQUE(term_id,period_no)
+timetable_courses    id, term_id⇘CASCADE, name, teacher, color_key, note, created_at, updated_at
+timetable_slots      id, course_id⇘CASCADE, weekday(1-7), start_time, end_time, period_label(可空), room, created_at, updated_at
+timetable_overrides  id, term_id⇘CASCADE, date, slot_id(可空)⇘CASCADE, kind(cancel|holiday), note, created_at
+                     CHECK((kind='holiday' AND slot_id IS NULL) OR (kind='cancel' AND slot_id IS NOT NULL))
+schedule_events      既有 + kind(event|homework|exam|report 預設 event) + course_id(可空,SET NULL) + slot_id(可空,SET NULL)
+                     + course_name_snapshot(可空);color_key 既有,建課程待辦時後端複製 course.color_key
+```
+
+蓋章:P1 UI ✅(糯糯 9/14)、P1 架構 ✅(小踢第三輪,補三件後)、TICKET-M 生效 9/15。
