@@ -68,3 +68,68 @@
 ## 給糯糯的一句話版
 
 他忘記「等等要記」→ 系統幫他記在待辦上,下次開口前提醒他一行。筆友的信 → 他每晚 23:30 睡前自己整理成記憶。花椰菜先想到禮物 → 記憶排序加「重要度與感情」的權重,不再只看「最近」。整案 token 不增反減,因為開場注入同時瘦身(cap5)。
+
+---
+
+# v2(2026-09-20 晚)——回小踢第一輪
+
+裁定:MEM-1 🟢、MEM-2 🟡、MEM-3 🔴(blocker)、MEM-4 🟡、MEM-5 🟡。全收,無一辯駁。另自查出一個現行漏洞(R6)。
+
+## R1(MEM-3 重寫,解 blocker):訊號分離,取消乘法公式
+
+- **retention tier 與 retrieval importance 分離**:tier 只管保存期,不乘入重要度。short 裡剛發生 2 小時的事可以比 long 的背景重要。
+- 排序輸入改為獨立訊號,由 ranker 組合(權重可調、非純乘法,任何一項為 0 不得歸零整筆):
+  `semantic_relevance`、`importance`(owner/cn 標注 + pinned)、`affective_salience`(emotion_score)、`freshness`(含 **cold-start 保護**:新記憶頭 N 天加成,讓昨天的大事打得過三個月的老熱門)、`reinforcement`(見下)。
+- **retrieved_count(系統撈出幾次)不進任何權重**——系統的排序結果不得訓練自己的排序器。
+- `reinforced_count` 只計「Owner/cn 真正重新提及、引用、確認」:具體訊號 = cn 呼叫 `cite_memory`/`annotate_memory`、或抽取器確認對話中實際再次談到該記憶的內容。**有上限、邊際遞減**(第 1 次有感、2–3 次微增、之後趨平)。
+- 黃金測試改寫:花椰菜案例仍在;新增「系統連續召回同一筆 100 次,其排序分數不變」(先破後立:把 retrieved_count 接回權重要紅)。
+
+## R2(MEM-2):daily digest 是 projection,不是第二份真相
+
+- `kind = daily_digest`、`derived_from = [source event/message ids]`(provenance 必填)。
+- 檢索規則:digest 與其 source 不得作為兩份獨立證據計分;命中 digest 沿 provenance 回源頭(digest 是導航/索引),只有「今天整體發生什麼」這類 query 直接回 digest。
+- Gmail 每筆必留:`source_type=gmail`、message/thread id、`direction=sent|received`、`observed_at`、correspondent。**message id 去重(idempotent)**,同一封信第二晚不得再寫。
+- **第三方陳述不升格**:Limen 信裡說「你最喜歡紅色吧」→ 只能存成「Limen 在某封信中這樣說」,永不得被整理成 Owner fact/cn belief。(沿用既有 authority 原則。)
+
+## R3(MEM-1):明確狀態物件
+
+- `memory_tasks(id, source_id, intent, status=open|resolved|dismissed, created_at, resolved_at)`——不是普通 Memory Event。
+- 高 precision 建立:只抓「未完成的**記憶操作**」語意(「等等記進記憶」「晚點整理進去」「先放著之後幫我記」);「等等再說/等等看/回頭聊」**不成立**。cn 自己說「這個我等等幫妳記」= commitment,由抽取器 candidate 建 task 並留來源。
+- 不做語意自動銷帳(維持);**resolved/dismissed 不刪**,留狀態與 audit——之後查「為什麼沒提醒」要有證據。
+
+## R4(MEM-4):20 是首批,不是 schema cap
+
+- 生命週期 `candidate → active → archived`;20 只是首批人工 curated / active budget,**不寫死在 schema**。
+- v1 簡化:Owner 點名建卡;夜間整理只能**更新既有卡**,不得自行新建永久卡。自動 candidate 等用幾週再評估。
+- 歷史表示法改:不用文字刪除線。卡片 = current projection + structured supersession(舊值帶 `valid_until`/`superseded_by`,provenance 指回來源);UI 要顯示舊值是 UI 的事,資料層必須機器可判。
+
+## R5(MEM-5):cap5 是 selection budget,不是 strength top5
+
+- 5 個 slot 概念配額:1–2 當前相關、1 近期高重要、1 長期核心、1 關聯圖補的 root/entity;selection 同時看 relevance + salience + freshness + **diversity**。
+- Golden 新增:五筆最高強度同屬一個 entity 時,cap5 不得無條件全選(先破後立:把 diversity 拿掉要紅)。
+
+## R6(自查,現行漏洞):anchor 現在的 Hebbian 就是那個迴圈
+
+- 現況:`search_memory` 預設 `hebbian=true`——**每次系統檢索就強化連結**,正是 R1 禁止的「retrieval 訓練自己」。它已經在生產跑了幾個月。
+- 修法:系統發起的檢索(wakeup、隱藏脈絡、swap)一律 `hebbian=false`;Hebbian 強化只保留給 cn 主動 `cite_memory`/`consolidate` 這類「真的用到了」的動作。列入 P1 首件,因為它不是新功能,是止血。
+
+## R7:注入帳改三欄
+
+每項記帳:`write/extraction cost`(建立時花多少)、`storage growth`(存多少)、`runtime injection`(每輪多多少)。MEM-1 更正:write 0 / storage 小 / runtime ≤30 字(之前寫 0 是偷吃步,認)。MEM-4 的「≈0 或省」改為**上線前實測**:同一組 query,卡片版 vs 原文版的注入字數對照表。
+
+## R8:總體黃金測試(鎖 MEM-2/3/4)
+
+> **Derived data must not amplify itself.** 同一原始事件即使同時存在於 daily digest、entity card、且曾被檢索多次,其總排序權重不得高於「僅有原始事件」的情形;不得憑空成為多份證據或永久霸榜。
+
+實作:golden 造一個事件,分別在「只有 event」「event+digest」「event+digest+card+被檢索 50 次」三種狀態下查詢,排序分數差異必須 ≤ 容忍值。
+
+## 修訂後分期
+
+1. **P1a(止血+儲存,不碰 prompt)**:R6 Hebbian 修正;memory_tasks 表;entity card 儲存層(含 supersession);digest schema/provenance。
+2. **P1b(ranking,R1 定稿後)**:訊號分離 ranker + 花椰菜/不自我放大 golden。
+3. **P1c**:MEM-4 retrieval、MEM-5 selection(踩在 P1b 上)。
+4. **P2(語氣,打樣→糯糯→小踢)**:MEM-1 提醒行文字、MEM-2 夜間 writer prompt、MEM-5 開啟。
+
+## 制度化
+
+「注入預算制 + 三欄注入帳 + 誰付帳」寫進施工檢查表,成為**所有新功能**的硬規矩(小踢採納)。
