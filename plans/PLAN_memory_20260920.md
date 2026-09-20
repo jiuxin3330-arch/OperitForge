@@ -133,3 +133,25 @@
 ## 制度化
 
 「注入預算制 + 三欄注入帳 + 誰付帳」寫進施工檢查表,成為**所有新功能**的硬規矩(小踢採納)。
+
+---
+
+# v3(2026-09-20 深夜)——小踢第二輪:P1a 綠燈;五條施工 invariant;舊規格作廢聲明
+
+## 作廢聲明(避免兩套規格並存)
+
+以下 v1 內容**作廢**,施工一律以 v2/v3 為準:
+- v1 MEM-3 的乘法公式(`tier × emotion × 衰減 × 召回次數`)→ 改 R1 訊號分離 ranker。
+- v1 MEM-4「舊事實劃掉不刪」的刪除線寫法 → 改 R4 structured supersession。
+- v1 MEM-5「用 MEM-3 strength 排前五」→ 改 R5 selection budget。
+- v1 注入帳「token = 0(規則)」寫法 → 改 R7 三欄帳。
+
+## 小踢五條 invariant(施工必守,不需再回規劃窗審)
+
+1. **Reinforcement 硬邊界**:passive/startup/background/search 檢索**永不** reinforcement——用呼叫端身分/路徑判定,**不靠 caller 任意傳的 hebbian flag**(flag 可以留作向後相容,但系統路徑一律強制關)。既有 Hebbian 污染先**盤點**(哪些權重是這幾個月系統檢索灌出來的);無法歸因的 legacy weight **不假裝精確修復**——記錄現狀、標記「污染期」,不做偽精確的回滾。
+2. **P1b ranker 的 debug trace** 必須逐項可見:relevance / importance / affective / freshness / reinforcement / final_score / ranker_version。
+3. **防間接自強化**:某記憶被本輪 retrieval 注入後,cn 因此 paraphrase 它不算 reinforcement(來源是注入不是自發)。加 Golden:注入某記憶 → cn 回覆複述它 → 該記憶 reinforcement 不變。
+4. **Provenance 可遍歷**:derived projection(digest/card)的 provenance 必須能反向查——source 被 forget/delete 時,能找到所有受影響的 digest/card 並處置。
+5. **Evidence lineage 去重**:Derived-data Golden 除 final score 外,再驗 top-k/cap5 佔位——event+digest+card 同源時在結果列表裡**不得佔三個位子**(算一份證據)。另:memory_task resolve 要留 `resolved_by / reason / result_ref`。
+
+P1a 立單:TICKET-Q(`tickets/TICKET_Q_memory_p1a.md`)。
