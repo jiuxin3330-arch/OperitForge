@@ -155,3 +155,9 @@
 5. **Evidence lineage 去重**:Derived-data Golden 除 final score 外,再驗 top-k/cap5 佔位——event+digest+card 同源時在結果列表裡**不得佔三個位子**(算一份證據)。另:memory_task resolve 要留 `resolved_by / reason / result_ref`。
 
 P1a 立單:TICKET-Q(`tickets/TICKET_Q_memory_p1a.md`)。
+
+
+## P1b 設計輸入(2026-09-21,TICKET-Q 施工發現)
+
+- consolidate 匹配過寬:一次關鍵字命中 61 筆、建 1830 對邊(首次各 0.15)。遞減封頂擋住爆量,但 P1b 排序要考慮「大批低權重邊」的雜訊;候選:consolidate 單次建邊上限、或匹配門檻提高。交小踢。
+- 盤點事實:376 筆記憶 62,938 條邊、平均 degree 182,僅 40 條有明確建邊紀錄——legacy 邊幾乎全是污染,P1b ranker 對 pollution_cutoff 前的邊要打折或忽略。
