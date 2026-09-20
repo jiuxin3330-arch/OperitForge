@@ -1,7 +1,9 @@
 #!/bin/bash
 # TICKET-Q 重啟腳本（在 VPS 以 root 用 systemd-run 跑，不要從 exec_vps 的 cgroup 直接 restart——檢查表第 2 條）
 #   systemd-run --unit=ticketq-deploy --collect bash /root/ticketq-scratch/deploy_restart.sh
-# 做的事：等 anchor 空閒 → 再備份一次 → 產 owner key → restart → 等健康 → 驗 19+9 工具 → 任一步失敗自動回滾到 baseline 7c2e317
+# 做的事：等 anchor 空閒 → 再備份一次 → 產 owner key → restart → 等健康 → 驗 20+9 工具 → 任一步失敗自動回滾到 baseline 7c2e317
+# 2026-09-21 註：首次上線是 OOM 意外重啟（見 INCIDENT），本腳本沒跑到；留作日後刻意重啟的程序。
+# 先看 free -m：這台只有 2GB，anchor 載 embedder 要 ~1GB，別在跑其他重東西時重啟。
 set -u
 SRC=/root/anchor-memory
 DATA=$SRC/memory_data
@@ -73,7 +75,8 @@ PY
 RC=$?
 if [ "$STATE" != "active/running" ] || [ "$RC" != "0" ]; then
   echo "!! health failed (state=$STATE rc=$RC) → rollback to baseline 7c2e317"
-  cd $SRC && git stash -q && git checkout -q 7c2e317 -- anchor_db.py anchor_memory.py anchor_mcp_http.py && systemctl restart anchor-memory
+  cd $SRC && git checkout -q 7c2e317 -- anchor_db.py anchor_memory.py anchor_mcp_http.py && systemctl restart anchor-memory
+  # 回滾後 anchor_config.py / anchor_ext.py 留著沒關係（baseline 不 import 它們）；要回到新碼：git checkout HEAD -- 那三個檔
   sleep 8; systemctl is-active anchor-memory; exit 9
 fi
 echo "== schema_meta"; sqlite3 -header "$DATA/memories.db" "select * from schema_meta"
