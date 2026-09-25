@@ -156,7 +156,6 @@
 
 P1a 立單:TICKET-Q(`tickets/TICKET_Q_memory_p1a.md`)。
 
-
 ## P1b 設計輸入(2026-09-21,TICKET-Q 施工發現)
 
 - consolidate 匹配過寬:一次關鍵字命中 61 筆、建 1830 對邊(首次各 0.15)。遞減封頂擋住爆量,但 P1b 排序要考慮「大批低權重邊」的雜訊;候選:consolidate 單次建邊上限、或匹配門檻提高。交小踢。
