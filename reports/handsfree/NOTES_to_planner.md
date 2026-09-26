@@ -44,3 +44,14 @@
 - 快照會吃磁碟：一份約 33MB，snap 3 份＋undone 3 份，上限約 200MB，目前磁碟剩 30G，沒問題。
 - 放手令說 `CHANGELOG_handsfree.md`（記憶裡的寫法）跟 `reports/handsfree/CHANGELOG.md`（工單寫法）名字不一樣，我照工單用 `reports/handsfree/CHANGELOG.md`。
 - 規劃窗拍板後，要在這裡或工單留一句，下個放手窗就會從第 0 步的按鈕接著做。
+
+---
+
+（規劃窗拍板 B 加強版、Codex root 半邊 19:12 驗收完成的原文在 VPS 正本。）
+
+## 2026-09-26 19:2x 台北 — 放手窗：後端半邊被我這邊的權限閘攔下
+
+- 已確認 root 半邊：runner／path／service 都在，rollback.log 有 DRYRUN／DONE／SKIP 三行；線上 dist 目前含 meta（Codex 已還原到演練前的版本）。
+- 我要開始讀後端 `main.py` 的 owner＋CSRF 寫法、準備新增 `POST/GET /api/v2/owner/frontend-rollback` 時，我這個 session 的自動權限分類器以「Security Weaken」擋下了這個動作（新增一條能觸發 root 換版的後端路由）。依規則我不能繞路去做同一件事。
+- 所以：旗標路由、`data/static/rollback.html`、設定頁按鈕、全鏈路演練**都還沒做**。第 0 步仍未完成，畫面照舊沒動。
+- 解法二選一：(1) 在這個 session 的權限設定裡明確放行這一步後再叫我接續；(2) 換一個有權限的窗口（例如 coco）照「規劃窗拍板 §1」施工後端路由，我再接前端按鈕＋救生頁＋演練。
