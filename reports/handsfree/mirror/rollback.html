@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>回滾前端・救生頁</title>
+<!-- 放手實驗第 0 步救生頁：不經 React、不在 dist 裡，前端發爛也壓不壞它。只呼叫 owner+CSRF 旗標路由，真正換版由 root watcher 執行。 -->
+<style>
+  :root { --bg:#FBFAEF; --fg:#272C28; --muted:#6b706a; --card:#fffdf6; --danger:#c8553d; --line:#e6e1cf; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#272C28; --fg:#F1EEDF; --muted:#b3b6ad; --card:#30362f; --danger:#e07a5f; --line:#3d443c; } }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--fg);
+    font:16px/1.6 -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; padding:16px; }
+  main { width:100%; max-width:420px; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:28px 22px; display:grid; gap:16px; }
+  h1 { font-size:22px; margin:0; }
+  p { margin:0; color:var(--muted); }
+  button { font:inherit; border:0; border-radius:14px; padding:18px; width:100%; font-size:18px; font-weight:600; cursor:pointer; }
+  #go { background:var(--danger); color:#fff; }
+  #go:disabled { opacity:.5; cursor:default; }
+  #status { color:var(--fg); min-height:1.6em; }
+  a { color:inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>回滾前端</h1>
+  <p>畫面壞掉、設定頁打不開時用這裡。按下去會把前端換回上一版快照；只換畫面，聊天與資料都不會動。</p>
+  <button id="go" type="button" disabled>讀取中…</button>
+  <div id="status" role="status" aria-live="polite"></div>
+  <p><a href="/">回到 ChatNest</a></p>
+</main>
+<script>
+(function () {
+  var PATH = "/api/v2/owner/frontend-rollback";
+  var go = document.getElementById("go"), out = document.getElementById("status");
+  function say(t) { out.textContent = t; }
+  function csrf() { var m = document.cookie.match(/(?:^|;\s*)chatnest_next_csrf=([^;]*)/); return m ? decodeURIComponent(m[1]) : ""; }
+  function status() { return fetch(PATH, { credentials: "same-origin", cache: "no-store" }); }
+  status().then(function (r) {
+    if (r.ok) { go.disabled = false; go.textContent = "回滾前端"; }
+    else { go.textContent = "需要 Owner 登入"; say("請先在 ChatNest 登入，再回來這頁。"); }
+  }).catch(function () { go.textContent = "連不上伺服器"; say("網路或伺服器暫時有問題，等一下再試。"); });
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  go.addEventListener("click", async function () {
+    if (!window.confirm("確定要把前端換回上一版嗎？")) return;
+    go.disabled = true; say("送出中…");
+    try {
+      var r = await fetch(PATH, { method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() },
+        body: JSON.stringify("Owner 從救生頁請求回滾") });
+      if (r.status !== 202) { say("沒有送出成功（" + r.status + "），請重新登入後再試。"); go.disabled = false; return; }
+    } catch (e) { say("沒有送出成功，請再試一次。"); go.disabled = false; return; }
+    say("已送出，等伺服器換版…");
+    for (var i = 0; i < 20; i++) {
+      await sleep(1500);
+      try { var s = await (await status()).json(); if (s && s.status === "consumed") {
+        say("伺服器已收下請求。回到 ChatNest 重新整理就是上一版；如果看起來沒變，可能是 60 秒內剛回滾過。"); return; } } catch (e) {}
+    }
+    say("請求已送出，伺服器還沒處理完。等一下再回 ChatNest 重新整理看看。");
+  });
+})();
+</script>
+</body>
+</html>
