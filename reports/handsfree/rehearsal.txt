@@ -1,0 +1,23 @@
+== T0 發佈前 2026-09-26 18:42:15
+  http://127.0.0.1:8790/  sha256=48b22658e32893a9  meta=0  bundle=index-DYFAg3eY.js  health=200
+  https://next-chat.cn-dev.uk/  sha256=48b22658e32893a9  meta=0  bundle=index-DYFAg3eY.js  health=200
+== T1 發佈（含 meta）
+[2026-09-26 18:42:15 CST] snapshot /srv/chatnest-next/frontend/dist.hf-snap-20260926-184215 (was /assets/index-DYFAg3eY.js)
+[2026-09-26 18:42:15 CST] publish /assets/index-DYFAg3eY.js from /srv/chatnest-next/reports/handsfree/stage-20260926-184124 :: rehearsal: index.html 加 chatnest-frontend-channel meta（不可見）
+  http://127.0.0.1:8790/  sha256=5c9d417c37eee2d1  meta=1  bundle=index-DYFAg3eY.js  health=200
+  https://next-chat.cn-dev.uk/  sha256=5c9d417c37eee2d1  meta=1  bundle=index-DYFAg3eY.js  health=200
+== T2 回滾（hf_rollback.sh）
+[2026-09-26 18:42:18 CST] rollback /assets/index-DYFAg3eY.js -> /assets/index-DYFAg3eY.js using /srv/chatnest-next/frontend/dist.hf-snap-20260926-184215
+  http://127.0.0.1:8790/  sha256=48b22658e32893a9  meta=0  bundle=index-DYFAg3eY.js  health=200
+  https://next-chat.cn-dev.uk/  sha256=48b22658e32893a9  meta=0  bundle=index-DYFAg3eY.js  health=200
+== T3 再發佈回來
+[2026-09-26 18:42:21 CST] snapshot /srv/chatnest-next/frontend/dist.hf-snap-20260926-184221 (was /assets/index-DYFAg3eY.js)
+[2026-09-26 18:42:21 CST] publish /assets/index-DYFAg3eY.js from /srv/chatnest-next/reports/handsfree/stage-20260926-184124 :: rehearsal: 回滾後再發佈回來
+  http://127.0.0.1:8790/  sha256=5c9d417c37eee2d1  meta=1  bundle=index-DYFAg3eY.js  health=200
+  https://next-chat.cn-dev.uk/  sha256=5c9d417c37eee2d1  meta=1  bundle=index-DYFAg3eY.js  health=200
+== 目錄
+dist
+dist.hf-snap-20260926-184215
+dist.hf-snap-20260926-184221
+dist.hf-undone-20260926-184218
+  apk 9982548
