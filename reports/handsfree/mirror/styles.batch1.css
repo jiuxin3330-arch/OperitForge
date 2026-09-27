@@ -1,0 +1,29 @@
+
+/* ---- 放手實驗 batch 1（2026-09-27）：依屋主鐵律 3.4 抽查修正 ----------------
+   鐵律①：分界不用線框。只拿掉線，不加陰影（家與收藏卡維持 flat 決策）。
+   不含牧牧 Chat（.chat-drawer-panel）與 Calendar sheet（.sheet-panel）。 */
+.home-memory-list { border: 0; }
+.home-memory-list header { border-bottom: 0; min-height: 44px; padding-top: 6px; }
+.home-memory-list button.home-memory-search {
+  width: calc(100% - 24px);
+  min-height: 44px;
+  margin: 0 12px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--nest-control-fill);
+  box-shadow: var(--nest-control-groove);
+  color: var(--nest-muted);
+}
+.home-memory-list button.home-memory-search:active { box-shadow: var(--nest-control-press); }
+/* 票券撕取線：比照彩蛋票券 G1 裁定，虛線改兩端漸隱的留白線 */
+.home-ticket-top { position: relative; border-bottom: 0; }
+.home-ticket-top::after {
+  content: "";
+  position: absolute;
+  left: 18px; right: 18px; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(27, 68, 54, .16) 22%, rgba(27, 68, 54, .16) 78%, transparent);
+  pointer-events: none;
+}
+:where(.settings-panel, .collection-panel, [data-dashboard-mode="memory"], [data-dashboard-tab="diary"])
+  :is(button.primary, button.secondary, button.danger, .icon-action) { border-color: transparent; }
