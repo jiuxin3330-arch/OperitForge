@@ -1,0 +1,31 @@
+
+/* ---- 放手實驗 batch 2（2026-09-28）：內容頁抽查 --------------------------------
+   ① 收藏手帳卡：屋主 v119「日間白區下緣有影、夜間素身」被較早的 flat !important
+      蓋掉而從未生效。這裡以更高權重讓 v119 生效；夜間依規劃窗裁定「提亮後去框」。 */
+.collection-message-list > .collection-message-card,
+.collection-message-list > .collection-message-card[data-tone] {
+  box-shadow: 0 5px 14px rgb(105 96 66 / .15), 0 1px 3px rgb(105 96 66 / .1) !important;
+}
+html[data-theme="dark"] .collection-message-list > .collection-message-card,
+html[data-theme="dark"] .collection-message-list > .collection-message-card[data-tone] {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--nest-bg), #fff 9%);
+  box-shadow: none !important;
+}
+/* ② 日記紙張：票頭下的虛線撕取線 → 兩端漸隱細線（同彩蛋票券 G1、batch 1 家票券） */
+.diary-paper-sheet { border-top: 0; }
+.diary-paper-sheet::before {
+  content: "";
+  position: absolute;
+  left: 14px; right: 14px; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--diary-paper-rule) 20%, var(--diary-paper-rule) 80%, transparent);
+  pointer-events: none;
+}
+/* ③ 設定・服務狀態：灰框膠囊 → 新擬態內凹顯示框（狀態點不變） */
+.settings-panel .service-health {
+  border: 0;
+  border-radius: 14px;
+  background: var(--nest-control-fill);
+  box-shadow: var(--nest-control-groove);
+}
