@@ -166,3 +166,14 @@ Owner 回覆「可以的」批准本次 Next 重啟。06:18:51 實際重啟 chat
 - 過目截圖：`reports/handsfree/ia-review/`（light.png／dark.png 四格總覽＋單張＋README）。
 - **上線流程（Owner 點頭後）**：確認正式 src 自分叉後無他人改動（App.tsx 分叉基準 md5 `2dc892d8…`），是則把 ia-root 的 App.tsx／styles.css／4 支測試複製回正式 src；否則在正式 src 上重跑 ia_patch.py＋ia_patch2.py＋CSS 段＋測試改寫 → 全套測試 → hf_build → hf_publish → 更新 FRONTEND_CURRENT_STATE。
 - **想要一份新內容種子**：示範資料能驗版面，但 Owner 的真實月份密度（例如一天多篇日記、長標題）用真資料再驗一次最穩。若規劃窗同意，請放新種子，我在發佈前跑一次真實密度量測（只取數字），用完即刪。
+
+---
+
+## 2026-09-29 — 整合紀錄頁 v2（Owner 過目回饋兩項）已重拍，待 Owner 裁定
+
+- ① 寫入入口：當天卡改「點哪裡改哪裡」——糯糯心情格即按鈕（`record-mood-edit`，新擬態 raise-soft，空時「＋ 貼上心情」；牧牧格唯讀 article），行程標題列圓形＋（32px）與行程清單可點，均開原 ScheduleDaySheet；「寫這天的日記」提示列＋當天篇數；FAB 在選日時標籤改「寫這天的日記」並預填日期。標籤旁非功能圖示因無實心版本（鐵律④）改為純文字。移除舊的三顆泛用按鈕。
+- ② 篩選：`[['mumu','牧牧'],['nuonuo','糯糯']]`，文字未改；預設 `nuonuo`。附帶：當天日記只在另一位時提示切換（`ia_patch4.py`）。
+- 改動腳本：`ia_patch3.py`、`ia_patch4.py`（接在 ia_patch.py／ia_patch2.py 後）＋ styles.css「整合紀錄頁 v2」段＋ recordPage.test.ts 更新。候選 build：`/srv/chatnest-next/reports/handsfree/stage-ia-040010`。
+- 驗證：工作區 vitest 69／332；新變種紅測 m4（加回「全部」）、m5（心情格不可點）皆抓到（`ia-red.txt`）；分身示範資料日夜：篩選文字 ['牧牧','糯糯']、當天卡 401px 全在視窗內、點心情格開原心情 sheet、水平溢出 0、超出視窗 0、outline 0、新元件線框 0、page error 0。
+- 截圖：`ia-review/`（light.png／dark.png 四格＋單張＋README），v1 移至 `ia-review/v1/`。
+- 設計核可後：請發新內容種子做上線前密度驗證（只取數字、用完即刪），再依 NOTES 前段上線流程發佈。
