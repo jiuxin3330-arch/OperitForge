@@ -152,3 +152,17 @@ Owner 回覆「可以的」批准本次 Next 重啟。06:18:51 實際重啟 chat
 **收尾**：種子檔已刪（sha256 記在 `seed-deleted.txt`）；分身臨時目錄 0（另清掉 2 個 9/27 空庫稽核遺留的臨時目錄，無內容）；含內容的截圖目錄 content-r1/r2/d1/d2 已改 700/600 僅 root 可讀，未進 repo。
 
 **觀察（未動，供參考）**：日記清單 83 篇一條到底（每卡 88px、首屏 7 張、全長約 8600px），目前沒有月份分段或跳轉；若要處理屬資訊架構，需屋主意見。日曆月標題按鈕高 28px、`nest-switch` 42×24，略低於 32px 觸控建議，屬 Calendar 區未動。
+
+---
+
+## 2026-09-29 03:20 台北 — 放手窗：撕取線已恢復上線；整合紀錄頁提案待 Owner 過目
+
+**撕取線恢復**：移除 batch 1 家票券、batch 2 日記紙張兩段覆寫（改為註解），02:43 發佈 `index-C-8VjJeU.js`（index `9b7ccb77…`），快照 `dist.hf-snap-20260929-024322`，vitest 68/326。
+
+**整合紀錄頁（未發佈）**
+- 工作方式：正式 `frontend/src` **未改動**。在 `frontend/handsfree/ia-root/frontend`（src 複本、node_modules 連結）開發，改動全部以腳本表達：`ia_patch.py`（主體，每個替換唯一命中否則中止）、`ia_patch2.py`（選日後捲入畫面）、styles.css 尾端「整合紀錄頁」一段、測試。候選 build：`/srv/chatnest-next/reports/handsfree/stage-ia-025339`。
+- 設計：日曆為骨架（`data-calendar-lens="emotion"` 保留原格子外觀，格高維持 62px）；格子左下角行程點（最多 2）＋日記方點——位置經幾何量測選在雙貼紙對角／單貼紙置中都不會碰到的角落（重疊 0、壓數字 0）；點日期（再點取消）→ 當天卡（兩人心情唯讀、當天行程、記心情／排行程／寫這天的日記，分別開**原本的**心情 sheet、ScheduleDaySheet、日記編輯器並預填日期），並平滑捲入畫面（尊重減少動態）；下方日記沿用原票卡，改列「本月」或「當天」，作者篩選與寫新日記保留。拿掉：頁位圓點、左右滑、身心／行程鏡片、日曆專用寫入鈕。保留：月份切換、今天（改為直接選取今天）、月標題→情緒色團、「月／週／行程」切換（週＝Timetable 未改，TICKET-M 不在範圍）、經期顯示、日曆蝴蝶。後端與 API 零改動。
+- 驗證：工作區 vitest 69 files／331 passed（6 項舊契約改寫為新契約，非 IA 斷言原樣保留；新增 recordPage.test.ts 5 項，3 個變種紅測全抓 → `ia-red.txt`）；分身（**自製示範資料**，demo_seed.py，非真實內容）日夜：頁位圓點 0、鏡片 0、水平溢出 0、超出視窗 0、outline 0、page error 0；當天卡點開後 365px 全在視窗內。
+- 過目截圖：`reports/handsfree/ia-review/`（light.png／dark.png 四格總覽＋單張＋README）。
+- **上線流程（Owner 點頭後）**：確認正式 src 自分叉後無他人改動（App.tsx 分叉基準 md5 `2dc892d8…`），是則把 ia-root 的 App.tsx／styles.css／4 支測試複製回正式 src；否則在正式 src 上重跑 ia_patch.py＋ia_patch2.py＋CSS 段＋測試改寫 → 全套測試 → hf_build → hf_publish → 更新 FRONTEND_CURRENT_STATE。
+- **想要一份新內容種子**：示範資料能驗版面，但 Owner 的真實月份密度（例如一天多篇日記、長標題）用真資料再驗一次最穩。若規劃窗同意，請放新種子，我在發佈前跑一次真實密度量測（只取數字），用完即刪。
