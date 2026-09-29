@@ -384,3 +384,23 @@ Owner 回覆「可以的」批准本次 Next 重啟。06:18:51 實際重啟 chat
 - **版本指紋**（hf_check）：本機與公網 index sha256 前綴都是 `14033c6dfeabec76`，bundle `index-D9Hlem5r.js`，回滾卡在 bundle 內（1），health 200。救生頁 `/rollback.html` 兩端匿名皆 401（由後端 data/static 提供，不在 dist，發佈不影響）。
 - `docs/FRONTEND_CURRENT_STATE.md` 已加本次紀錄（原檔備份 `reports/handsfree/FRONTEND_CURRENT_STATE.md.bak-20260929`）。
 - 回滾：設定頁回滾卡或 `/rollback.html` 會換回 `dist.hf-snap-20260929-082629`，也就是撕取線恢復那一版。
+
+---
+
+## 2026-09-29 09:19 — 手帳微調上線（Owner 真機回饋四條）
+
+- **① 配色**：參考收藏頁訊息卡色帶（淺色全彩 #9CD9C9／#FFC9C9，夜間 30% 混色）。
+  - 章節標籤：淺色未選 86%、選中 100% 色；夜間未選 36%、選中 58% 色，選中那張配深墨字 #1f2420。
+  - 週課表課程色塊（只在手帳內）：淺色 88%、夜間 60%。夜間配深墨字，保證讀得清楚。
+- **② 切換膠囊方形底**：原因是 `.record-view-switch` 有底色但圓角 0。改成透明、圓角 999px、兩顆之間留 4px 間距。
+- **③ 導覽列下方方框**：`.workspace` 底部原本固定讓出 82px（`--nest-nav-height`），這條露出 app-shell 的底色。
+  - 修法：新增 `float-nav` class，只加在 chat／work／emotions 以外的頁面。這些頁的內容延伸到畫面底，`.panel` 底部留出導覽高度＋24px。
+  - 聊天、工作、情緒總覽維持原本的保留帶，因為聊天輸入框需要。
+  - 分身各頁捲到底抽查（日夜一致）：家 39px、收藏 396px、記憶 305px、設定 34px、紀錄頁 84px，都在膠囊之上；聊天 workspace 仍到 762px；水平溢出 0、page error 0。
+- **④ 行程↔週課表**：同章換視圖改為 `data-turn="swap"`，140ms 淡入加 4px 上浮，按鈕和滑動都一樣，不建立翻紙紙片。減少動態時是 `none`，直接切。跨章、翻月、翻日仍是翻紙（實測都有紙片）。
+- **測試**：正式 frontend vitest **74 檔／361 條全綠**。handbookPrint 一條斷言照新需求改成 swap；新增 handbookTweak 4 條。
+- **發佈**：
+  - `stage-20260929-091628`；快照 `dist.hf-snap-20260929-091919`（前一版 `index-D9Hlem5r.js`）。
+  - src 原檔備份：`reports/handsfree/archive/src-backup-pre-tweak-20260929-091146/`。
+- **版本指紋**（hf_check）：本機與公網 index sha256 都是 `cd350489dbc954cb`，bundle `index-CFvURgFg.js`，回滾卡在 bundle 內，health 200。救生頁兩端匿名 401。
+- **尚未驗到的一點**：週課表色塊的實際顏色，示範資料沒有課表可以量，只由測試保證 CSS 規則存在。若 Owner 覺得課表色還不夠，可以再往上調。
