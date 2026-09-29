@@ -365,3 +365,22 @@ Owner 回覆「可以的」批准本次 Next 重啟。06:18:51 實際重啟 chat
 7. v3～v5 的待確認細節仍然有效。
 
 過目素材：`ia-review/`（light.png／dark.png 兩列八格＋單張、`book-light.webm`／`book-dark.webm`、book.json、README），v1–v5 於子資料夾。核可後流程同前：新內容種子做密度驗證 → 正式 src 套用（**handbookFlip.ts 新檔一起**）→ 全套測試 → 發佈。
+
+---
+
+## 2026-09-29 08:26 — 手帳本正式發佈（Owner 終審通過）
+
+- **Owner 唯一修改**：拿掉標籤側紙邊陰影（`.panel[data-handbook-chapter]` 背景第二層漸層），書脊陰影保留。標籤陰影改成只往右落（負擴散），不溢到紙面。自驗方式是日夜各三章的截圖逐像素量：無標籤列的紙色一路平到 367px，368px 起是桌面或標籤本體；夜間最多差 4 個亮度級、只有 3 列（反鋸齒）。
+- **自驗時抓到的上線前問題**：`.panel[data-testid="dashboard-panel"]` 的進場動畫 `nest-detail-in … both`，播完後 transform 仍掛在 panel 上，導致 `position: fixed` 的章節標籤跟著內容捲走（筆記頁捲 359px 時標籤 top 變成 -209）。修法：只在手帳頁 `animation-fill-mode: backwards`；修後捲到底標籤仍在 150／234／318。
+- **真實密度驗證**（新種子，只取數字，`density-real-20260929.json`，無日期、無文字）：
+  - 第一次量到 5 個月中有 3 個月各有 18–26 張貼紙被格子右緣裁切、4–10 個元素超出內容區。原因是讓出標籤空間後格子約 49px，貼紙 27px 放不下兩張。
+  - 手帳內月曆貼紙改成 23px 後重量：5 個月／3 頁行程表／最密 6 天，溢出 0、裁切 0、page error 0。
+  - 種子檔已刪；分身資料庫在暫存資料夾隨結束刪除；殘留的 /tmp/hf-clone-* 已清。
+- **發佈**：
+  - 正式 src 與分叉基準一致（App.tsx md5 2dc892d8；styles.css 為工作區版本的前綴），直接搬入 11 個檔（App.tsx、styles.css、handbookFlip.ts、8 支測試）。原檔備份在 `reports/handsfree/archive/src-backup-prepublish-20260929-082418/`。
+  - 工作區與各版備份從 `frontend/handsfree/` 移到 `reports/handsfree/archive/`：它們的舊測試會被正式 vitest 掃到而誤報。移走後正式 frontend vitest **73 檔／357 條全綠**。
+  - `hf_build.sh` → `stage-20260929-082549`，bundle hash 與分身驗過的 `stage-ia-082225` 相同（JS `index-D9Hlem5r.js`、CSS `index-BohBgwSw.css`）。
+  - `hf_publish.sh` 快照 `dist.hf-snap-20260929-082629`（前一版 `index-C-8VjJeU.js`，保留 3 份）。
+- **版本指紋**（hf_check）：本機與公網 index sha256 前綴都是 `14033c6dfeabec76`，bundle `index-D9Hlem5r.js`，回滾卡在 bundle 內（1），health 200。救生頁 `/rollback.html` 兩端匿名皆 401（由後端 data/static 提供，不在 dist，發佈不影響）。
+- `docs/FRONTEND_CURRENT_STATE.md` 已加本次紀錄（原檔備份 `reports/handsfree/FRONTEND_CURRENT_STATE.md.bak-20260929`）。
+- 回滾：設定頁回滾卡或 `/rollback.html` 會換回 `dist.hf-snap-20260929-082629`，也就是撕取線恢復那一版。
