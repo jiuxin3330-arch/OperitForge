@@ -424,3 +424,22 @@ Owner 回覆「可以的」批准本次 Next 重啟。06:18:51 實際重啟 chat
 - **版本指紋**（hf_check）：本機與公網 index sha256 都是 `e142c1006f037956`，bundle `index-D0WTQsmB.js`，回滾卡在 bundle 內，health 200。救生頁 `/rollback.html` 匿名 401；`/api/v2/owner/friends` 匿名 401。
 - **發佈後分身實測**（真後端 clone、內容種子，clone DB 自動刪除）：日夜都有側欄入口與標題；只打 3 個 GET（friends、suggestions、entity-cards）；page error 0，水平溢出 0，無讀取失敗。clone 名冊為空，所以 rows 是 0，屬預期。
 - **未碰**：後端、CLI、DB、cn 文字。W3 星圖未動。
+
+## 2026-09-30 12:12・名冊微調（Owner 手機回饋，直接上）
+
+- **暗色搜尋欄的方塊**：
+  - 根因是全域規則 `html[data-theme="dark"] input[type="search"|"text"|…]`（styles.css:1635，特異性 0,2,2）會把背景填回 `--nest-bg`，壓過元件自己的 `.xxx input { background: transparent }`（0,1,1）。
+  - 這是反覆出現的老問題：`nest-search-input`（styles.css:14809）和 composer textarea 之前都各自加了壓制規則。
+  - 名冊改用 `.friends-panel .friend-search input[type="search"]`（0,3,1）壓回透明，並加了測試鎖住。
+  - **建議（未做，需批准）**：把那條全域暗色規則包成 `:where()` 降權，一次根治。但它會影響所有頁的輸入框，要全頁回歸，所以不在這次範圍內。
+- **排版**：
+  - `.panel.friends-panel { gap: 0 }`，不再疊加 flex gap 和 margin。
+  - 間距改為：頭 16 → 搜尋 18 → 人數 8 → 清單 12 → 補線索 22 → 線索區 20 → 頁尾註。
+  - 人數用 `lining-nums tabular-nums`；空狀態改兩行（`<strong>` 首句）、靠左、`text-wrap: pretty`。
+- **驗證**：
+  - vitest 75／371 綠（多 1 條 search 權重測試）。
+  - w_shots 合成資料日夜行為全數照舊。
+  - 截圖在 `reports/handsfree/w-review-r2/`。
+- **發佈**：
+  - `stage-20260930-120657`；快照 `dist.hf-snap-20260930-121252`（前一版 `index-D0WTQsmB.js`）。
+  - hf_check 雙端 index sha256 `ad9d99ca26ff1fc0`，bundle `index-qcJOn0j5.js`，回滾卡在 bundle 內，health 200，救生頁匿名 401。

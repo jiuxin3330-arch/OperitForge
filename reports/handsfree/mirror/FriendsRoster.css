@@ -1,5 +1,7 @@
 /* 筆友名冊：通訊錄。分界用陰影與留白，不用框線；頭像底色只由 id 決定，不代表親疏。 */
 .friends-panel { color: var(--nest-text); }
+/* 自己管節奏：不疊 .panel 的 flex gap，間距只由下面的 margin 決定 */
+.panel.friends-panel { gap: 0; }
 .friends-panel > * { max-width: 620px; width: 100%; margin-inline: auto; }
 .friends-panel h2, .friends-panel h3 { margin: 0; }
 .friend-note { margin: 0; color: var(--nest-muted); font-size: .82rem; line-height: 1.65; overflow-wrap: anywhere; }
@@ -9,18 +11,23 @@
 .friends-panel :is(button, input, textarea, label, summary):focus-visible { outline: 2px solid color-mix(in srgb, var(--nest-accent, #6f8f7a) 70%, transparent); outline-offset: 2px; }
 
 /* 頁首 */
-.friends-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-top: 4px; }
-.friends-head h2 { font-size: 1.5rem; font-weight: 650; letter-spacing: .02em; }
-.friends-head .friend-note { margin-top: 4px; }
+.friends-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; }
+.friends-head h2 { font-size: 1.5rem; font-weight: 650; letter-spacing: .02em; line-height: 1.25; }
+.friends-head .friend-note { margin-top: 2px; }
 .friend-icon-button { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 50%; color: var(--nest-muted); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); cursor: pointer; }
 .friend-icon-button:active { box-shadow: var(--nest-control-press); }
 
 /* 搜尋：凹進去的一條 */
-.friend-search { display: flex; align-items: center; gap: 8px; min-height: 46px; margin-top: 18px; padding: 0 14px; border-radius: 999px; color: var(--nest-muted); background: var(--nest-control-fill); box-shadow: var(--nest-control-groove); }
-.friend-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--nest-text); font: inherit; font-size: .92rem; box-shadow: none; outline: 0; }
+.friend-search { display: flex; align-items: center; gap: 8px; min-height: 46px; margin-top: 16px; padding: 0 16px; border-radius: 999px; color: var(--nest-muted); background: var(--nest-control-fill); box-shadow: var(--nest-control-groove); }
+/* 全域暗色規則 html[data-theme=dark] input[type=search] 會把 input 塗成底色方塊，這裡權重要高過它 */
+.friends-panel .friend-search input[type="search"] { flex: 1; min-width: 0; min-height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--nest-text); font: inherit; font-size: .92rem; box-shadow: none; outline: 0; -webkit-appearance: none; appearance: none; }
+.friends-panel .friend-search input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; }
+.friends-panel .friend-search input[type="search"]::placeholder { color: var(--nest-muted); opacity: .8; }
 .friend-search:focus-within { outline: 2px solid color-mix(in srgb, var(--nest-accent, #6f8f7a) 60%, transparent); outline-offset: 2px; }
-.friend-count { margin: 18px 4px 8px; color: var(--nest-muted); font-size: .76rem; letter-spacing: .08em; }
-.friend-empty { margin: 14px 0; padding: 22px 18px; border-radius: 20px; color: var(--nest-muted); background: color-mix(in srgb, var(--nest-control-fill), transparent 30%); text-align: center; line-height: 1.7; }
+.friend-count { margin: 18px 6px 8px; color: var(--nest-muted); font-size: .76rem; letter-spacing: .08em; font-variant-numeric: lining-nums tabular-nums; }
+.friends-panel > .friend-error, .friends-panel > .friend-note[role="status"] { margin-top: 14px; }
+.friend-empty { margin: 0; padding: 16px 18px; border-radius: 18px; color: var(--nest-muted); background: color-mix(in srgb, var(--nest-control-fill), transparent 30%); font-size: .86rem; line-height: 1.7; text-wrap: pretty; overflow-wrap: anywhere; }
+.friend-empty strong { display: block; margin-bottom: 2px; color: var(--nest-text); font-weight: 600; font-size: .92rem; }
 
 /* 聯絡人列表：一張浮起的名冊，每列是一個可點的人 */
 .friends-list { list-style: none; display: grid; gap: 2px; margin: 0; padding: 6px; border-radius: 22px; background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); }
@@ -44,15 +51,15 @@
 html[data-theme="dark"] .friend-avatar { color: #1f2420; box-shadow: 0 2px 6px rgb(0 0 0 / .3); filter: saturate(.9) brightness(.92); }
 
 /* 補線索 */
-.friend-add-lead { width: 100%; min-height: 50px; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; color: var(--nest-text); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); font: inherit; font-size: .9rem; cursor: pointer; }
+.friend-add-lead { width: 100%; min-height: 48px; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; color: var(--nest-text); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); font: inherit; font-size: .9rem; cursor: pointer; }
 .friend-add-lead:active { box-shadow: var(--nest-control-press); }
-.friend-leads { margin-top: 26px; }
+.friend-leads { margin-top: 22px; }
 .friend-leads h3 { margin: 0 4px 10px; font-size: .82rem; font-weight: 600; letter-spacing: .12em; color: var(--nest-muted); }
 .friend-leads ul { list-style: none; margin: 0; padding: 6px; border-radius: 22px; background: color-mix(in srgb, var(--nest-control-fill), transparent 35%); box-shadow: var(--nest-control-groove); }
 .friend-leads li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 9px 10px; opacity: .88; }
 .friend-leads li .friend-avatar { width: 36px; height: 36px; font-size: .9rem; filter: grayscale(.5); }
 .friend-leads em { font-style: normal; font-size: .72rem; padding: 3px 9px; border-radius: 999px; color: var(--nest-muted); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); }
-.friends-panel > .friend-center { margin-top: 26px; }
+.friends-panel > .friend-center { margin-top: 20px; }
 
 /* 聯絡人卡 */
 .friend-detail { display: grid; gap: 16px; }

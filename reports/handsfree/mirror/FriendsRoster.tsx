@@ -257,7 +257,7 @@ export function FriendsRoster() {
       {loading && !friends && <p role="status" className="friend-note">正在翻開名冊…</p>}
       {error && <p role="alert" className="friend-error">{error} <button type="button" className="friend-text-button" onClick={() => void load()}>重試</button></p>}
       {friends && <p className="friend-count">{friends.length} 位朋友{leads.length ? ` · ${leads.length} 條線索待確認` : ""}</p>}
-      {friends?.length === 0 && <p className="friend-empty">牧牧還沒有確認入冊的朋友。可以先補名字與地址線索。</p>}
+      {friends?.length === 0 && <p className="friend-empty"><strong>牧牧還沒有確認入冊的朋友。</strong>可以先補名字與地址線索。</p>}
       {friends && friends.length > 0 && shown.length === 0 && <p className="friend-empty">找不到符合的朋友。</p>}
       {shown.length > 0 && <ul className="friends-list" aria-label="已入冊的朋友">
         {shown.map(friend => <li key={friend.id}><button type="button" className="friend-row" onClick={() => setOpenId(friend.id)}>

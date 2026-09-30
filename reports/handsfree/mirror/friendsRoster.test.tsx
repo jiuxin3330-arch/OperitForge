@@ -69,4 +69,8 @@ describe("筆友名冊（TICKET-W）", () => {
     expect(css).not.toMatch(/border(-top|-bottom|-left|-right)?:\s*[1-9]/);
     expect(css).not.toMatch(/0 -1px 0/);
   });
+  it("keeps the search field transparent over the global dark input rule", () => {
+    expect(css).toContain('.friends-panel .friend-search input[type="search"] {');
+    expect(css).toMatch(/\.friends-panel \.friend-search input\[type="search"\] \{[^}]*background: transparent/);
+  });
 });
