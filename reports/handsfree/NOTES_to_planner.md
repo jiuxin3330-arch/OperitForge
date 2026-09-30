@@ -404,3 +404,23 @@ Owner 回覆「可以的」批准本次 Next 重啟。06:18:51 實際重啟 chat
   - src 原檔備份：`reports/handsfree/archive/src-backup-pre-tweak-20260929-091146/`。
 - **版本指紋**（hf_check）：本機與公網 index sha256 都是 `cd350489dbc954cb`，bundle `index-CFvURgFg.js`，回滾卡在 bundle 內，health 200。救生頁兩端匿名 401。
 - **尚未驗到的一點**：週課表色塊的實際顏色，示範資料沒有課表可以量，只由測試保證 CSS 規則存在。若 Owner 覺得課表色還不夠，可以再往上調。
+
+## 2026-09-30 11:58・TICKET-W 名冊頁已發布（Owner 核可）
+
+- **視覺**：電話簿式。搜尋 pill、聯絡人清單（姓名首字頭像，色調依 id hash 固定）、聯絡卡（複製地址／編輯／實體卡）、底部抽屜（補線索、連結實體卡）。無 border／分隔線，日夜皆驗。Owner 第一輪截圖即核可，無需參考圖。
+- **硬牆逐項**：
+  - cn 敘述四欄＋status 純文字（FriendDetail 0 個 input）。
+  - 三條固定文案逐字 export 並以測試鎖定。
+  - PATCH 只送變更的 name／email／aliases／entity_card_id。
+  - 無 DELETE、無刪除按鈕，不 POST base，無掃信字樣。
+  - 實體卡只可手選，不依名字配對。
+  - 409／422／403／404／503／401／網路錯誤各有獨立訊息且保留填寫內容。
+- **打樣資料**：全為合成資料，以 route 攔截注入，沒有寫入任何 DB。
+- **檔案**：`frontend/src/FriendsRoster.tsx`、`FriendsRoster.css`、`friendsRoster.test.tsx`（9 條）。App.tsx 只加了 import、View `"friends"`、側欄一項、render 一行。
+- **測試**：正式 vitest **75 檔／370 條全綠**。
+- **發佈**：
+  - `stage-20260930-115729`；快照 `dist.hf-snap-20260930-115804`（前一版 `index-CFvURgFg.js`）。
+  - src 備份：`reports/handsfree/archive/src-backup-pre-friends-20260930-115657/`。
+- **版本指紋**（hf_check）：本機與公網 index sha256 都是 `e142c1006f037956`，bundle `index-D0WTQsmB.js`，回滾卡在 bundle 內，health 200。救生頁 `/rollback.html` 匿名 401；`/api/v2/owner/friends` 匿名 401。
+- **發佈後分身實測**（真後端 clone、內容種子，clone DB 自動刪除）：日夜都有側欄入口與標題；只打 3 個 GET（friends、suggestions、entity-cards）；page error 0，水平溢出 0，無讀取失敗。clone 名冊為空，所以 rows 是 0，屬預期。
+- **未碰**：後端、CLI、DB、cn 文字。W3 星圖未動。

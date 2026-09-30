@@ -1,0 +1,105 @@
+/* 筆友名冊：通訊錄。分界用陰影與留白，不用框線；頭像底色只由 id 決定，不代表親疏。 */
+.friends-panel { color: var(--nest-text); }
+.friends-panel > * { max-width: 620px; width: 100%; margin-inline: auto; }
+.friends-panel h2, .friends-panel h3 { margin: 0; }
+.friend-note { margin: 0; color: var(--nest-muted); font-size: .82rem; line-height: 1.65; overflow-wrap: anywhere; }
+.friend-center { text-align: center; }
+.friend-error { margin: 0; color: var(--nest-danger, #b8584f); font-size: .84rem; line-height: 1.6; overflow-wrap: anywhere; }
+.friend-mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .8rem; letter-spacing: .01em; overflow-wrap: anywhere; }
+.friends-panel :is(button, input, textarea, label, summary):focus-visible { outline: 2px solid color-mix(in srgb, var(--nest-accent, #6f8f7a) 70%, transparent); outline-offset: 2px; }
+
+/* 頁首 */
+.friends-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.friends-head h2 { font-size: 1.5rem; font-weight: 650; letter-spacing: .02em; }
+.friends-head .friend-note { margin-top: 4px; }
+.friend-icon-button { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 50%; color: var(--nest-muted); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); cursor: pointer; }
+.friend-icon-button:active { box-shadow: var(--nest-control-press); }
+
+/* 搜尋：凹進去的一條 */
+.friend-search { display: flex; align-items: center; gap: 8px; min-height: 46px; margin-top: 18px; padding: 0 14px; border-radius: 999px; color: var(--nest-muted); background: var(--nest-control-fill); box-shadow: var(--nest-control-groove); }
+.friend-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--nest-text); font: inherit; font-size: .92rem; box-shadow: none; outline: 0; }
+.friend-search:focus-within { outline: 2px solid color-mix(in srgb, var(--nest-accent, #6f8f7a) 60%, transparent); outline-offset: 2px; }
+.friend-count { margin: 18px 4px 8px; color: var(--nest-muted); font-size: .76rem; letter-spacing: .08em; }
+.friend-empty { margin: 14px 0; padding: 22px 18px; border-radius: 20px; color: var(--nest-muted); background: color-mix(in srgb, var(--nest-control-fill), transparent 30%); text-align: center; line-height: 1.7; }
+
+/* 聯絡人列表：一張浮起的名冊，每列是一個可點的人 */
+.friends-list { list-style: none; display: grid; gap: 2px; margin: 0; padding: 6px; border-radius: 22px; background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); }
+.friend-row { width: 100%; min-height: 64px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 9px 10px; border: 0; border-radius: 16px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.friend-row:active { box-shadow: var(--nest-control-press); }
+.friend-row > svg { color: var(--nest-muted); width: 18px; height: 18px; }
+.friend-row-text { display: grid; gap: 3px; min-width: 0; }
+.friend-row-text strong { font-weight: 600; font-size: 1rem; overflow-wrap: anywhere; }
+.friend-row-text small { color: var(--nest-muted); font-size: .8rem; overflow-wrap: anywhere; }
+.friend-card-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--schedule-aqua, #9CD9C9); box-shadow: 0 0 0 3px color-mix(in srgb, var(--schedule-aqua, #9CD9C9), transparent 70%); }
+
+/* 頭像：首字 */
+.friend-avatar { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; font-weight: 650; font-size: 1.05rem; color: #2f322c; background: var(--friend-tone); box-shadow: inset 0 -2px 0 rgb(0 0 0 / .06), 0 2px 6px rgb(60 56 40 / .12); }
+.friend-avatar[data-size="lg"] { width: 88px; height: 88px; font-size: 2.1rem; }
+.friend-avatar[data-tone="butter"] { --friend-tone: #FFF4A3; }
+.friend-avatar[data-tone="aqua"] { --friend-tone: #9CD9C9; }
+.friend-avatar[data-tone="lavender"] { --friend-tone: #C8B8D9; }
+.friend-avatar[data-tone="blush"] { --friend-tone: #FFC9C9; }
+.friend-avatar[data-tone="honey"] { --friend-tone: #E7C44F; }
+.friend-avatar[data-tone="sage"] { --friend-tone: #A9CB96; }
+html[data-theme="dark"] .friend-avatar { color: #1f2420; box-shadow: 0 2px 6px rgb(0 0 0 / .3); filter: saturate(.9) brightness(.92); }
+
+/* 補線索 */
+.friend-add-lead { width: 100%; min-height: 50px; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; color: var(--nest-text); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); font: inherit; font-size: .9rem; cursor: pointer; }
+.friend-add-lead:active { box-shadow: var(--nest-control-press); }
+.friend-leads { margin-top: 26px; }
+.friend-leads h3 { margin: 0 4px 10px; font-size: .82rem; font-weight: 600; letter-spacing: .12em; color: var(--nest-muted); }
+.friend-leads ul { list-style: none; margin: 0; padding: 6px; border-radius: 22px; background: color-mix(in srgb, var(--nest-control-fill), transparent 35%); box-shadow: var(--nest-control-groove); }
+.friend-leads li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 9px 10px; opacity: .88; }
+.friend-leads li .friend-avatar { width: 36px; height: 36px; font-size: .9rem; filter: grayscale(.5); }
+.friend-leads em { font-style: normal; font-size: .72rem; padding: 3px 9px; border-radius: 999px; color: var(--nest-muted); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); }
+.friends-panel > .friend-center { margin-top: 26px; }
+
+/* 聯絡人卡 */
+.friend-detail { display: grid; gap: 16px; }
+.friend-back { justify-self: start; display: inline-flex; align-items: center; gap: 2px; min-height: 40px; padding: 0 14px 0 8px; border: 0; border-radius: 999px; color: var(--nest-muted); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); font: inherit; font-size: .88rem; cursor: pointer; }
+.friend-back:active { box-shadow: var(--nest-control-press); }
+.friend-hero { display: grid; justify-items: center; gap: 8px; text-align: center; padding-top: 4px; }
+.friend-hero h2 { font-size: 1.55rem; font-weight: 650; overflow-wrap: anywhere; }
+.friend-hero-label { margin: 0; color: var(--nest-muted); font-size: .9rem; overflow-wrap: anywhere; }
+.friend-status { margin: 2px 0 0; max-width: 100%; padding: 5px 12px; border-radius: 999px; font-size: .78rem; color: var(--nest-text); background: color-mix(in srgb, var(--schedule-aqua, #9CD9C9) 40%, var(--nest-control-fill)); overflow-wrap: anywhere; }
+.friend-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.friend-action { min-height: 64px; display: grid; justify-items: center; align-content: center; gap: 5px; border: 0; border-radius: 18px; color: var(--nest-text); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); font: inherit; font-size: .78rem; cursor: pointer; }
+.friend-action:active, .friend-action[aria-pressed="true"] { box-shadow: var(--nest-control-press); }
+.friend-action:disabled { opacity: .45; cursor: default; }
+.friend-block { padding: 16px 18px; border-radius: 20px; background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); }
+.friend-fields { display: grid; gap: 14px; margin: 0; }
+.friend-fields dt { color: var(--nest-muted); font-size: .76rem; letter-spacing: .06em; }
+.friend-fields dd { margin: 4px 0 0; line-height: 1.6; overflow-wrap: anywhere; }
+.friend-fields dd small { color: var(--nest-muted); margin-left: 4px; }
+.friend-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.friend-chips span { padding: 3px 10px; border-radius: 999px; font-size: .8rem; background: var(--nest-bg); box-shadow: var(--nest-control-groove); overflow-wrap: anywhere; }
+.friend-story h3 { font-size: .86rem; font-weight: 600; color: var(--nest-muted); letter-spacing: .06em; }
+.friend-story p { margin: 8px 0 0; white-space: pre-wrap; line-height: 1.75; overflow-wrap: anywhere; }
+.friend-meta { margin: -6px 0 0; text-align: center; color: var(--nest-muted); font-size: .72rem; }
+
+/* 表單 */
+.friend-form { display: grid; gap: 14px; }
+.friend-form label { display: grid; gap: 6px; font-size: .84rem; color: var(--nest-muted); }
+.friend-form input, .friend-form textarea { min-width: 0; min-height: 44px; padding: 10px 14px; border: 0; border-radius: 14px; color: var(--nest-text); background: var(--nest-bg); box-shadow: var(--nest-control-groove); font: inherit; font-size: .95rem; resize: vertical; }
+.friend-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.friend-button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; font: inherit; font-size: .88rem; cursor: pointer; color: var(--nest-text); background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); }
+.friend-button[data-kind="primary"] { background: color-mix(in srgb, var(--schedule-aqua, #9CD9C9) 70%, var(--nest-control-fill)); font-weight: 600; }
+.friend-button:active { box-shadow: var(--nest-control-press); }
+.friend-button:disabled { opacity: .5; cursor: default; }
+.friend-text-button { border: 0; background: none; color: inherit; text-decoration: underline; font: inherit; cursor: pointer; padding: 0 2px; }
+
+/* 底部小表單 */
+.friend-sheet-overlay { position: fixed; inset: 0; z-index: 260; display: flex; align-items: flex-end; justify-content: center; background: rgb(39 44 40 / .24); }
+.friend-sheet { width: min(100%, 560px); max-height: 86dvh; overflow: auto; display: grid; gap: 14px; padding: 18px 18px calc(22px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; color: var(--nest-text); background: var(--nest-bg); box-shadow: 0 -8px 26px rgb(39 44 40 / .16); animation: friend-sheet-in 220ms cubic-bezier(.2, .8, .2, 1); }
+.friend-sheet > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.friend-sheet h3 { font-size: 1.05rem; font-weight: 650; }
+@keyframes friend-sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .friend-sheet { animation: none; } }
+html[data-reduced-motion="true"] .friend-sheet { animation: none; }
+.friend-card-options { display: grid; gap: 8px; }
+.friend-card-option { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--nest-control-fill); box-shadow: var(--nest-control-raise-soft); cursor: pointer; }
+.friend-card-option[data-checked="true"] { box-shadow: var(--nest-control-press); background: color-mix(in srgb, var(--schedule-aqua, #9CD9C9) 32%, var(--nest-control-fill)); }
+.friend-card-option input { width: 18px; height: 18px; accent-color: #4f9c8a; }
+.friend-card-option span { display: grid; gap: 2px; min-width: 0; }
+.friend-card-option strong { overflow-wrap: anywhere; }
+.friend-card-option small { color: var(--nest-muted); font-size: .76rem; overflow-wrap: anywhere; }
