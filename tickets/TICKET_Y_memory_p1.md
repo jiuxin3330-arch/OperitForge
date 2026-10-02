@@ -21,6 +21,11 @@
 - **INC-C 正式修正 Y0**：不是零邊孤島，是「**新制邊存在（51 條 0.15）但無法成長到使用門檻**」（get_neighbors 0.5、聯想 1.5，使用層面不可見不可達）。
 - link-quality 升格：病名是「**新舊圖權重語義斷代**」——2325 條強邊全 legacy、新制邊上限 0.375，association 實際由 legacy 圖獨占；Y2 不只收噪音，**必須定義新邊如何形成可信可達的強連結**。
 - FK 維持「事故成立、根因待定位」；「正式庫沒被動到」類表述一律改「**依本次監測項目未觀察到正式庫變更**」（除非有 DB/WAL 前後雜湊證據——下個窗口起加 sha256 前後對照）。
+**【10/3 三裁（小踢）】全數採納：**
+- 融合公式裁「語義」：正式更名 **rank-only damped fusion**（max＋0.3×其他榜貢獻，貢獻=w/(5+名次)），公式明寫進規格，不再稱 RRF（防日後被依標準 RRF「修正」回純加總）。**硬 invariant：Y2b fusion 不得在 eligibility hard filter 未啟用時部署**（noelig 禁止召 4→3 為實證）；34/38 僅為 stand-in 預估，非部署成績。
+- S1 條件式核可：①本輪**未核 DDL**——columns/FK/index/unique/ON DELETE 需獨立送審；②回退=DB rollback（DROP 五表）**＋code rollback**（git 回 S1 前版本）兩者都要；③五表建立單一 transaction，任一失敗整批不落地。其餘程序核可，重啟時段由 Owner 另批。
+- 留出集三規則：①先 freeze（commit/profile/n=3/k=5/alpha=0.3/gate A 參數）再由規劃窗獨立出題；②holdout 一經曝光並用於修法即降級 regression case，最終驗收需全新 unseen set；③必須覆蓋已知邊界：0.38–0.55 閒聊重疊帶、hidden/superseded 向量頭名、單榜頭名 vs 雙榜共現、日期錨定、legacy/new-edge。
+- C 案 cache key 必含：model/version、prompt version、query、candidate-set/快照 identity（防庫狀態變更後誤吃舊判定）。
 
 ## Y1：評測基建（先於一切行為改動；純新增，不動召回）
 
